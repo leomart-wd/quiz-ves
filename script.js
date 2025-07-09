@@ -9,11 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadQuestions() {
         try {
             const response = await fetch('quiz.json');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             questionsData = await response.json();
             renderQuestions();
         } catch (error) {
             console.error('Errore nel caricamento delle domande:', error);
-            quizForm.innerHTML = '<p>Impossibile caricare il test. Riprova più tardi.</p>';
+            quizForm.innerHTML = '<p style="color: red; text-align: center;">Impossibile caricare il test. Controlla che il file quiz.json sia presente e corretto.</p>';
         }
     }
 
@@ -33,8 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         const optionValue = q.type === 'true_false' ? (option === 'Vero' ? 'true' : 'false') : option;
                         quizHTML += `
                             <div>
-                                <input type="radio" name="question-${index}" id="q${index}-${option.replace(/\s+/g, '')}" value="${optionValue}" required>
-                                <label for="q${index}-${option.replace(/\s+/g, '')}">${option}</label>
+                                <input type="radio" name="question-${index}" id="q${index}-${option.replace(/[^a-zA-Z0-9]/g, '')}" value="${optionValue}" required>
+                                <label for="q${index}-${option.replace(/[^a-zA-Z0-9]/g, '')}">${option}</label>
                             </div>
                         `;
                     });
@@ -46,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
                 
                 case 'open_ended':
+                     quizHTML += `<textarea class="open-ended-input" name="question-${index}" rows="4" placeholder="Spiega con parole tue..."></textarea>`;
                      quizHTML += `<div class="model-answer hidden" id="model-answer-${index}"><strong>Risposta Modello:</strong> ${q.model_answer}</div>`;
                     break;
             }
@@ -90,10 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // Mostra i risultati
-        scoreText.textContent = `Hai risposto correttamente a ${score} su ${totalGradable} domande.`;
+        scoreText.textContent = `Hai risposto correttamente a ${score} su ${totalGradable} domande valutabili.`;
         resultsContainer.classList.remove('hidden');
         submitBtn.disabled = true;
-        window.scrollTo(0, document.body.scrollHeight);
+        // Porta l'utente in cima alla pagina per vedere i risultati
+        window.scrollTo({ top: 0, behavior: 'smooth' }); 
     });
 
     loadQuestions();

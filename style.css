@@ -72,9 +72,7 @@ h1 {
     border-color: #adb5bd;
 }
 
-.options-container input[type="radio"],
-.options-container input[type="checkbox"] {
-    margin-right: 10px;
+.options-container input[type="radio"] {
     display: none; /* Nascondiamo il radio button di default */
 }
 
@@ -86,8 +84,8 @@ h1 {
     font-weight: 500;
 }
 
-/* Stili per risposte brevi */
-.short-answer-input {
+/* Stili per risposte brevi e aperte */
+.short-answer-input, .open-ended-input {
     width: 100%;
     padding: 10px;
     border: 1px solid #ccc;
@@ -143,12 +141,12 @@ h1 {
 
 /* Stili per la Correzione */
 .correct {
-    border: 2px solid #2ecc71;
+    border: 2px solid #2ecc71 !important;
     background-color: #e8f8f5;
 }
 
 .incorrect {
-    border: 2px solid #e74c3c;
+    border: 2px solid #e74c3c !important;
     background-color: #fdedec;
 }
 

@@ -12,39 +12,60 @@
   },
   {
     "type": "true_false",
-    "question": "2. Vero o Falso: Un Metodo è un concetto più ampio di una Metodologia, perché include anche i principi filosofici.",
+    "question": "2. Secondo il documento, massaggiare un muscolo teso è la soluzione definitiva per risolvere una tensione cronica.",
     "answer": false
   },
   {
     "type": "multiple_choice",
-    "question": "3. Tutti i muscoli intrinseci della laringe sono innervati dal nervo laringeo inferiore (ricorrente), ad eccezione di uno. Quale?",
+    "question": "3. Quale muscolo intrinseco è l'UNICO responsabile dell'apertura (abduzione) delle corde vocali?",
     "options": [
-      "Il muscolo Tiroaritenoideo (TA)",
-      "Il muscolo Cricotiroideo (CT)",
-      "Il muscolo Cricoaritenoideo Laterale (LCA)",
-      "Il muscolo Interaritenoideo (IA)"
+      "Cricotiroideo (CT)",
+      "Tiroaritenoideo (TA)",
+      "Cricoaritenoideo Laterale (LCA)",
+      "Cricoaritenoideo Posteriore (PCA)"
     ],
-    "answer": "Il muscolo Cricotiroideo (CT)"
+    "answer": "Cricoaritenoideo Posteriore (PCA)"
   },
   {
     "type": "short_answer",
-    "question": "4. Qual è la prima e più importante macro-area del modello operativo VES, senza la quale nessuna tecnica può essere efficace?",
-    "answer": "relazione"
+    "question": "4. Come si chiama il principio didattico del VES che prevede di consolidare un obiettivo alla volta prima di passare a quello successivo?",
+    "answer": "slow teaching"
   },
-    {
+  {
     "type": "multiple_choice",
-    "question": "5. Qual è la funzione principale dei muscoli Sottoioidei (es. Sternotiroideo)?",
+    "question": "5. Secondo la filosofia VES, il punto di partenza per qualsiasi cambiamento duraturo nella voce è:",
     "options": [
-      "Elevare la laringe e l'osso ioide.",
-      "Chiudere le corde vocali durante la fonazione.",
-      "Aprire le corde vocali durante la respirazione.",
-      "Abbassare (deprimere) e stabilizzare la laringe."
+      "Il rafforzamento dei muscoli respiratori",
+      "La riprogrammazione a livello neurale (cervello)",
+      "L'applicazione rigida di una serie di esercizi",
+      "L'eliminazione del sintomo vocale"
     ],
-    "answer": "Abbassare (deprimere) e stabilizzare la laringe."
+    "answer": "La riprogrammazione a livello neurale (cervello)"
+  },
+  {
+    "type": "multiple_choice",
+    "question": "6. Quale articolazione è primariamente responsabile della variazione di altezza (pitch)?",
+    "options": [
+      "L'articolazione Crico-Aritenoidea",
+      "L'articolazione Temporo-Mandibolare",
+      "L'articolazione Crico-Tiroidea",
+      "Nessuna delle precedenti"
+    ],
+    "answer": "L'articolazione Crico-Tiroidea"
+  },
+  {
+    "type": "true_false",
+    "question": "7. Vero o Falso: I muscoli Sopraioidei hanno la funzione principale di abbassare la laringe.",
+    "answer": false
+  },
+  {
+    "type": "short_answer",
+    "question": "8. In quale fase della comunicazione il flusso d'aria si trasforma in un'onda sonora percepibile nell'ambiente?",
+    "answer": "fase acustica"
   },
   {
     "type": "open_ended",
-    "question": "6. Domanda Aperta: Spiega perché, secondo la filosofia VES, un cambiamento duraturo della voce deve avvenire a livello neurale e non solo muscolare.",
-    "model_answer": "Il cambiamento deve essere neurale perché il muscolo esegue solo un comando del cervello. Per modificare un comportamento disfunzionale (es. stringere la mandibola), non basta agire sul muscolo con un massaggio (che dà sollievo temporaneo), ma è necessario riprogrammare il comando neurale che causa la tensione, insegnando al cervello un nuovo pattern motorio più efficiente e facendolo diventare automatico ('cronicizzato')."
+    "question": "9. Domanda Aperta: Spiega brevemente perché la 'Relazione' è considerata la macro-area fondamentale del sistema VES, prima ancora della valutazione tecnica.",
+    "model_answer": "La Relazione è fondamentale perché crea il contesto di fiducia e comunicazione efficace necessario per qualsiasi intervento. Senza una solida alleanza tra insegnante e allievo, basata sull'ascolto e la comprensione, nessuna tecnica o esercizio può essere veramente efficace, in quanto la performance vocale è profondamente legata allo stato interiore e psicologico della persona."
   }
 ]
