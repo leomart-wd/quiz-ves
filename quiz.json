@@ -1,71 +1,170 @@
 [
+  { "type": "header", "text": "Sezione 1: Filosofia e Principi Fondamentali" },
   {
     "type": "multiple_choice",
-    "question": "1. Qual è la corretta gerarchia dal concetto più specifico al più ampio secondo il documento?",
-    "options": [
-      "Sistema -> Metodologia -> Metodo",
-      "Metodo -> Sistema -> Metodologia",
-      "Metodo -> Metodologia -> Sistema",
-      "Metodologia -> Metodo -> Sistema"
-    ],
+    "question": "1. Qual è la corretta gerarchia dal concetto più specifico al più ampio?",
+    "options": ["Sistema -> Metodologia -> Metodo", "Metodo -> Sistema -> Metodologia", "Metodo -> Metodologia -> Sistema"],
     "answer": "Metodo -> Metodologia -> Sistema"
   },
   {
     "type": "true_false",
-    "question": "2. Secondo il documento, massaggiare un muscolo teso è la soluzione definitiva per risolvere una tensione cronica.",
+    "question": "2. Secondo la filosofia VES, un cambiamento duraturo nella voce si ottiene principalmente agendo sul sintomo.",
     "answer": false
-  },
-  {
-    "type": "multiple_choice",
-    "question": "3. Quale muscolo intrinseco è l'UNICO responsabile dell'apertura (abduzione) delle corde vocali?",
-    "options": [
-      "Cricotiroideo (CT)",
-      "Tiroaritenoideo (TA)",
-      "Cricoaritenoideo Laterale (LCA)",
-      "Cricoaritenoideo Posteriore (PCA)"
-    ],
-    "answer": "Cricoaritenoideo Posteriore (PCA)"
-  },
-  {
-    "type": "short_answer",
-    "question": "4. Come si chiama il principio didattico del VES che prevede di consolidare un obiettivo alla volta prima di passare a quello successivo?",
-    "answer": "slow teaching"
-  },
-  {
-    "type": "multiple_choice",
-    "question": "5. Secondo la filosofia VES, il punto di partenza per qualsiasi cambiamento duraturo nella voce è:",
-    "options": [
-      "Il rafforzamento dei muscoli respiratori",
-      "La riprogrammazione a livello neurale (cervello)",
-      "L'applicazione rigida di una serie di esercizi",
-      "L'eliminazione del sintomo vocale"
-    ],
-    "answer": "La riprogrammazione a livello neurale (cervello)"
-  },
-  {
-    "type": "multiple_choice",
-    "question": "6. Quale articolazione è primariamente responsabile della variazione di altezza (pitch)?",
-    "options": [
-      "L'articolazione Crico-Aritenoidea",
-      "L'articolazione Temporo-Mandibolare",
-      "L'articolazione Crico-Tiroidea",
-      "Nessuna delle precedenti"
-    ],
-    "answer": "L'articolazione Crico-Tiroidea"
-  },
-  {
-    "type": "true_false",
-    "question": "7. Vero o Falso: I muscoli Sopraioidei hanno la funzione principale di abbassare la laringe.",
-    "answer": false
-  },
-  {
-    "type": "short_answer",
-    "question": "8. In quale fase della comunicazione il flusso d'aria si trasforma in un'onda sonora percepibile nell'ambiente?",
-    "answer": "fase acustica"
   },
   {
     "type": "open_ended",
-    "question": "9. Domanda Aperta: Spiega brevemente perché la 'Relazione' è considerata la macro-area fondamentale del sistema VES, prima ancora della valutazione tecnica.",
-    "model_answer": "La Relazione è fondamentale perché crea il contesto di fiducia e comunicazione efficace necessario per qualsiasi intervento. Senza una solida alleanza tra insegnante e allievo, basata sull'ascolto e la comprensione, nessuna tecnica o esercizio può essere veramente efficace, in quanto la performance vocale è profondamente legata allo stato interiore e psicologico della persona."
+    "question": "3. Spiega con parole tue perché il VES è definito un 'Sistema' e non semplicemente una 'Metodologia'.",
+    "model_answer": "Il VES è un Sistema perché integra diverse Metodologie (che a loro volta contengono Metodi) in un insieme sinergico. Non si limita a fornire principi teorici, ma include elementi interconnessi come persone, strumenti, procedure e aspetti relazionali, tutti cooperanti per un obiettivo comune."
+  },
+  {
+    "type": "multiple_choice",
+    "question": "4. Quale approccio si concentra sulla comprensione di 'come funziona il soggetto' nella sua interezza, integrandone tutti gli aspetti?",
+    "options": ["Sintomatico", "Eziologico", "Fisiologico o Eclettico", "Propriocettivo"],
+    "answer": "Fisiologico o Eclettico"
+  },
+  {
+    "type": "short_answer",
+    "question": "5. Il principio didattico del VES che prevede di consolidare un obiettivo alla volta fino a 'cronicizzarlo' nel cervello si chiama...",
+    "answer": "slow teaching"
+  },
+  { "type": "header", "text": "Sezione 2: Le 7 Macro-Aree e Fasi della Comunicazione" },
+  {
+    "type": "multiple_choice",
+    "question": "6. Qual è la prima e più importante macro-area del modello operativo VES?",
+    "options": ["Valutazione", "Abilitare", "Relazione", "Preparare il territorio"],
+    "answer": "Relazione"
+  },
+  {
+    "type": "true_false",
+    "question": "7. La fase 'Abilitare' viene prima della 'Preparazione del territorio'.",
+    "answer": false
+  },
+  {
+    "type": "multiple_choice",
+    "question": "8. In quale fase della comunicazione l'idea di un suono viene programmata a livello cerebrale?",
+    "options": ["Fase Muscolare", "Fase Neurale", "Fase Acustica", "Fase Aerodinamica"],
+    "answer": "Fase Neurale"
+  },
+  {
+    "type": "open_ended",
+    "question": "9. Perché, secondo il documento, la propriocezione da sola non è sufficiente per un cambiamento vocale stabile?",
+    "model_answer": "La propriocezione (sentire la sensazione) è utile per aumentare le possibilità e la consapevolezza, ma non cambia il funzionamento neuro-senso-motorio alla base del movimento. Per un cambiamento stabile, è necessario agire a livello neurale per riprogrammare il comando motorio, non solo modificare la posizione di una struttura."
+  },
+  { "type": "header", "text": "Sezione 3: Anatomia Funzionale - Cartilagini e Articolazioni" },
+  {
+    "type": "multiple_choice",
+    "question": "10. Quale articolazione è primariamente responsabile della variazione di altezza (pitch)?",
+    "options": ["Articolazione Crico-Aritenoidea", "Articolazione Temporo-Mandibolare", "Articolazione Crico-Tiroidea"],
+    "answer": "Articolazione Crico-Tiroidea"
+  },
+  {
+    "type": "true_false",
+    "question": "11. La cartilagine Tiroide è la più piccola delle cartilagini laringee.",
+    "answer": false
+  },
+  {
+    "type": "short_answer",
+    "question": "12. Le cartilagini Aritenoidee si articolano sulla parte superiore di quale altra cartilagine?",
+    "answer": "cricoide"
+  },
+  {
+    "type": "multiple_choice",
+    "question": "13. L'epiglottide ha una funzione principalmente...",
+    "options": ["Fonatoria", "Protettiva durante la deglutizione", "Respiratoria", "Di supporto strutturale"],
+    "answer": "Protettiva durante la deglutizione"
+  },
+  { "type": "header", "text": "Sezione 4: Anatomia Funzionale - Muscoli Intrinseci" },
+  {
+    "type": "multiple_choice",
+    "question": "14. Quale muscolo è il principale TENSIONATORE delle corde vocali, essenziale per le note acute?",
+    "options": ["Tiroaritenoideo (TA)", "Cricoaritenoideo Posteriore (PCA)", "Cricotiroideo (CT)", "Interaritenoideo (IA)"],
+    "answer": "Cricotiroideo (CT)"
+  },
+  {
+    "type": "multiple_choice",
+    "question": "15. Il muscolo Tiroaritenoideo (TA), quando si contrae, principalmente:",
+    "options": ["Allunga e assottiglia le corde vocali", "Apre le corde vocali", "Accorcia e ispessisce le corde vocali"],
+    "answer": "Accorcia e ispessisce le corde vocali"
+  },
+  {
+    "type": "short_answer",
+    "question": "16. Qual è l'UNICO muscolo abduttore, responsabile dell'apertura delle corde vocali?",
+    "answer": "cricoaritenoideo posteriore"
+  },
+  {
+    "type": "true_false",
+    "question": "17. Tutti i muscoli intrinseci sono innervati dal Nervo Laringeo Superiore.",
+    "answer": false
+  },
+  {
+    "type": "open_ended",
+    "question": "18. Descrivi brevemente la funzione antagonista (opposta) tra il muscolo Cricotiroideo (CT) e il Tiroaritenoideo (TA) nel controllo del pitch.",
+    "model_answer": "Il CT è il muscolo degli acuti: contraendosi, allunga e assottiglia le corde vocali, aumentandone la tensione e la frequenza di vibrazione. Il TA è il muscolo dei gravi: contraendosi, accorcia e ispessisce le corde vocali, diminuendone la tensione e la frequenza di vibrazione. Lavorano in un equilibrio dinamico per gestire l'intera estensione vocale."
+  },
+  {
+    "type": "multiple_choice",
+    "question": "19. Quale muscolo è il principale responsabile della CHIUSURA (adduzione) delle corde vocali?",
+    "options": ["Cricoaritenoideo Posteriore (PCA)", "Cricoaritenoideo Laterale (LCA)", "Cricotiroideo (CT)"],
+    "answer": "Cricoaritenoideo Laterale (LCA)"
+  },
+  { "type": "header", "text": "Sezione 5: Anatomia Funzionale - Muscoli Estrinseci e Strutture" },
+  {
+    "type": "true_false",
+    "question": "20. I muscoli Sottoioidei (es. Sternotiroideo) hanno la funzione di elevare la laringe.",
+    "answer": false
+  },
+  {
+    "type": "multiple_choice",
+    "question": "21. Un cantante che soffre di bruxismo (digrignare i denti) potrebbe lamentare affaticamento vocale a causa dell'iper-contrazione di quale gruppo muscolare?",
+    "options": ["Sottoioidei", "Costrittori della faringe", "Sopraioidei", "Muscoli respiratori"],
+    "answer": "Sopraioidei"
+  },
+  {
+    "type": "short_answer",
+    "question": "22. La struttura delle corde vocali è spesso descritta con il modello a due strati di Hirano, chiamati...",
+    "answer": "body e cover"
+  },
+  {
+    "type": "true_false",
+    "question": "23. Le Corde Vocali False (CVF) si trovano al di sotto delle Corde Vocali Vere (CVV).",
+    "answer": false
+  },
+  {
+    "type": "open_ended",
+    "question": "24. Un cantante lamenta una sensazione di 'laringe alta' e fatica. Quale gruppo di muscoli estrinseci (Sopraioidei o Sottoioidei) dovrebbe essere attivato per contrastare questo problema e perché?",
+    "model_answer": "Dovrebbero essere attivati i muscoli Sottoioidei. La loro funzione è quella di abbassare (deprimere) e stabilizzare la laringe. Un'attivazione equilibrata di questo gruppo contrasta l'eccessiva elevazione laringea causata dai Sopraioidei, promuovendo una fonazione più efficiente e meno faticosa."
+  },
+  { "type": "header", "text": "Sezione 6: Applicazioni Pratiche e Riepilogo" },
+  {
+    "type": "multiple_choice",
+    "question": "25. Un danno al Nervo Laringeo Ricorrente (Inferiore) di sinistra è più probabile rispetto a quello di destra durante interventi di chirurgia toracica perché:",
+    "options": ["È più corto e più esposto", "È più lungo e ha un percorso anatomico più complesso", "Innerva più muscoli", "È meno protetto"],
+    "answer": "È più lungo e ha un percorso anatomico più complesso"
+  },
+  {
+    "type": "true_false",
+    "question": "26. Secondo il modello Body/Cover, la parte che vibra più liberamente, simile a gelatina, è il Body.",
+    "answer": false
+  },
+  {
+    "type": "short_answer",
+    "question": "27. Quale tipo di fibra muscolare, a rapida contrazione e resistente, è prevalente nei muscoli laringei?",
+    "answer": "tipo 2a"
+  },
+  {
+    "type": "multiple_choice",
+    "question": "28. La tecnica dell'attenzione divisa, menzionata nel documento, implica:",
+    "options": ["Concentrarsi solo sulla propria voce", "Avere uno sguardo esterno ma anche rivolto verso il proprio mondo interno", "Dividere l'attenzione tra canto e respirazione"],
+    "answer": "Avere uno sguardo esterno ma anche rivolto verso il proprio mondo interno"
+  },
+  {
+    "type": "true_false",
+    "question": "29. L'azione didattica del VES è indipendente dal contesto relazionale.",
+    "answer": false
+  },
+  {
+    "type": "open_ended",
+    "question": "30. Riepilogando il concetto più importante: se un allievo non riesce a produrre un suono stabile, su quale 'fase' della comunicazione il VES si concentra primariamente per un cambiamento duraturo?",
+    "model_answer": "Il VES si concentra primariamente sulla Fase Neurale. Anche se il problema si manifesta a livello muscolare, strutturale o acustico, la filosofia del sistema sostiene che un cambiamento reale e permanente deve partire dalla riprogrammazione dei comandi motori nel cervello, ovvero modificando l'origine dell'input, non solo l'esecuzione periferica."
   }
 ]

@@ -24,6 +24,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderQuestions() {
         let quizHTML = '';
         questionsData.forEach((q, index) => {
+            if (q.type === 'header') {
+                quizHTML += `<h2 class="section-header">${q.text}</h2>`;
+                return;
+            }
+
             quizHTML += `<div class="question-block" id="q-block-${index}">`;
             quizHTML += `<p class="question-text">${q.question}</p>`;
             
@@ -66,6 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalGradable = 0;
 
         questionsData.forEach((q, index) => {
+            if (q.type === 'header') return; // Salta i titoli di sezione
+
             const questionBlock = document.getElementById(`q-block-${index}`);
             questionBlock.classList.remove('correct', 'incorrect');
             
@@ -88,8 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     questionBlock.classList.add('incorrect');
                 }
             } else {
-                 // Per le domande aperte, mostra solo la risposta modello
-                document.getElementById(`model-answer-${index}`).classList.remove('hidden');
+                 document.getElementById(`model-answer-${index}`).classList.remove('hidden');
             }
         });
         
@@ -97,8 +103,11 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreText.textContent = `Hai risposto correttamente a ${score} su ${totalGradable} domande valutabili.`;
         resultsContainer.classList.remove('hidden');
         submitBtn.disabled = true;
-        // Porta l'utente in cima alla pagina per vedere i risultati
-        window.scrollTo({ top: 0, behavior: 'smooth' }); 
+        
+        const firstResult = document.getElementById('results-container');
+        if (firstResult) {
+            firstResult.scrollIntoView({ behavior: 'smooth' });
+        }
     });
 
     loadQuestions();
