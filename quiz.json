@@ -1,100 +1,50 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const quizForm = document.getElementById('quiz-form');
-    const submitBtn = document.getElementById('submit-btn');
-    const resultsContainer = document.getElementById('results-container');
-    const scoreText = document.getElementById('score-text');
-    let questionsData = [];
-
-    // Carica le domande dal file JSON
-    async function loadQuestions() {
-        try {
-            const response = await fetch('quiz.json');
-            questionsData = await response.json();
-            renderQuestions();
-        } catch (error) {
-            console.error('Errore nel caricamento delle domande:', error);
-            quizForm.innerHTML = '<p>Impossibile caricare il test. Riprova più tardi.</p>';
-        }
-    }
-
-    // Mostra le domande nella pagina
-    function renderQuestions() {
-        let quizHTML = '';
-        questionsData.forEach((q, index) => {
-            quizHTML += `<div class="question-block" id="q-block-${index}">`;
-            quizHTML += `<p class="question-text">${q.question}</p>`;
-            
-            switch (q.type) {
-                case 'multiple_choice':
-                case 'true_false':
-                    const options = q.type === 'true_false' ? ['Vero', 'Falso'] : q.options;
-                    quizHTML += '<div class="options-container">';
-                    options.forEach(option => {
-                        const optionValue = q.type === 'true_false' ? (option === 'Vero' ? 'true' : 'false') : option;
-                        quizHTML += `
-                            <div>
-                                <input type="radio" name="question-${index}" id="q${index}-${option.replace(/\s+/g, '')}" value="${optionValue}" required>
-                                <label for="q${index}-${option.replace(/\s+/g, '')}">${option}</label>
-                            </div>
-                        `;
-                    });
-                    quizHTML += '</div>';
-                    break;
-
-                case 'short_answer':
-                    quizHTML += `<input type="text" name="question-${index}" class="short-answer-input" placeholder="Scrivi la tua risposta qui..." required>`;
-                    break;
-                
-                case 'open_ended':
-                     quizHTML += `<div class="model-answer hidden" id="model-answer-${index}"><strong>Risposta Modello:</strong> ${q.model_answer}</div>`;
-                    break;
-            }
-            quizHTML += '</div>';
-        });
-        quizForm.innerHTML = quizHTML;
-    }
-
-    // Gestisce l'invio e la correzione
-    submitBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        
-        let score = 0;
-        let totalGradable = 0;
-
-        questionsData.forEach((q, index) => {
-            const questionBlock = document.getElementById(`q-block-${index}`);
-            questionBlock.classList.remove('correct', 'incorrect');
-            
-            if (q.type !== 'open_ended') {
-                totalGradable++;
-                let userAnswer;
-                if (q.type === 'short_answer') {
-                    const input = document.querySelector(`input[name="question-${index}"]`);
-                    userAnswer = input.value.trim().toLowerCase();
-                } else {
-                    const selectedOption = document.querySelector(`input[name="question-${index}"]:checked`);
-                    userAnswer = selectedOption ? selectedOption.value : null;
-                }
-
-                const correctAnswer = q.answer.toString().toLowerCase();
-                if (userAnswer === correctAnswer) {
-                    score++;
-                    questionBlock.classList.add('correct');
-                } else {
-                    questionBlock.classList.add('incorrect');
-                }
-            } else {
-                 // Per le domande aperte, mostra solo la risposta modello
-                document.getElementById(`model-answer-${index}`).classList.remove('hidden');
-            }
-        });
-        
-        // Mostra i risultati
-        scoreText.textContent = `Hai risposto correttamente a ${score} su ${totalGradable} domande.`;
-        resultsContainer.classList.remove('hidden');
-        submitBtn.disabled = true;
-        window.scrollTo(0, document.body.scrollHeight);
-    });
-
-    loadQuestions();
-});s
+[
+  {
+    "type": "multiple_choice",
+    "question": "1. Qual è la corretta gerarchia dal concetto più specifico al più ampio secondo il documento?",
+    "options": [
+      "Sistema -> Metodologia -> Metodo",
+      "Metodo -> Sistema -> Metodologia",
+      "Metodo -> Metodologia -> Sistema",
+      "Metodologia -> Metodo -> Sistema"
+    ],
+    "answer": "Metodo -> Metodologia -> Sistema"
+  },
+  {
+    "type": "true_false",
+    "question": "2. Vero o Falso: Un Metodo è un concetto più ampio di una Metodologia, perché include anche i principi filosofici.",
+    "answer": false
+  },
+  {
+    "type": "multiple_choice",
+    "question": "3. Tutti i muscoli intrinseci della laringe sono innervati dal nervo laringeo inferiore (ricorrente), ad eccezione di uno. Quale?",
+    "options": [
+      "Il muscolo Tiroaritenoideo (TA)",
+      "Il muscolo Cricotiroideo (CT)",
+      "Il muscolo Cricoaritenoideo Laterale (LCA)",
+      "Il muscolo Interaritenoideo (IA)"
+    ],
+    "answer": "Il muscolo Cricotiroideo (CT)"
+  },
+  {
+    "type": "short_answer",
+    "question": "4. Qual è la prima e più importante macro-area del modello operativo VES, senza la quale nessuna tecnica può essere efficace?",
+    "answer": "relazione"
+  },
+    {
+    "type": "multiple_choice",
+    "question": "5. Qual è la funzione principale dei muscoli Sottoioidei (es. Sternotiroideo)?",
+    "options": [
+      "Elevare la laringe e l'osso ioide.",
+      "Chiudere le corde vocali durante la fonazione.",
+      "Aprire le corde vocali durante la respirazione.",
+      "Abbassare (deprimere) e stabilizzare la laringe."
+    ],
+    "answer": "Abbassare (deprimere) e stabilizzare la laringe."
+  },
+  {
+    "type": "open_ended",
+    "question": "6. Domanda Aperta: Spiega perché, secondo la filosofia VES, un cambiamento duraturo della voce deve avvenire a livello neurale e non solo muscolare.",
+    "model_answer": "Il cambiamento deve essere neurale perché il muscolo esegue solo un comando del cervello. Per modificare un comportamento disfunzionale (es. stringere la mandibola), non basta agire sul muscolo con un massaggio (che dà sollievo temporaneo), ma è necessario riprogrammare il comando neurale che causa la tensione, insegnando al cervello un nuovo pattern motorio più efficiente e facendolo diventare automatico ('cronicizzato')."
+  }
+]
