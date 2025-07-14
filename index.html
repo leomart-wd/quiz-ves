@@ -3,31 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test sul Voice Evolution System (VES)</title>
+    <title>Test di Didattica della Voce - VES</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-
-    <div id="quiz-container">
-        <h1>Test di Valutazione - Concetti Chiave del VES</h1>
-        <p class="subtitle">Valuta la tua comprensione dei principi del Voice Evolution System.</p>
-        
-        <form id="quiz-form">
-            <!-- Le domande verranno inserite qui da JavaScript -->
-        </form>
-
-        <button id="submit-btn">Verifica le Risposte</button>
-
-        <div id="results-container" class="hidden">
-            <h2>Risultati</h2>
-            <p id="score-text"></p>
-            <p>Rivedi le tue risposte qui sopra. Le risposte corrette sono evidenziate in verde, quelle errate in rosso.</p>
+    <main id="app-container">
+        <!-- Schermata del Menù Principale -->
+        <div id="menu-container">
+            <h1>Test di Didattica Vocale</h1>
+            <p class="subtitle">Seleziona il test che vuoi affrontare.</p>
+            <div class="menu-buttons">
+                <button class="menu-btn" data-testid="test1">Test 1: Filosofia e Anatomia Generale</button>
+                <button class="menu-btn" data-testid="test2">Test 2: Biomeccanica e Funzionalità</button>
+            </div>
         </div>
-    </div>
 
+        <!-- Contenitore del Quiz (inizialmente nascosto) -->
+        <div id="quiz-container" class="hidden">
+            <div id="quiz-header">
+                <h2 id="quiz-title"></h2>
+                <div id="progress-container">
+                    <p id="progress-text"></p>
+                    <div id="progress-bar-full">
+                        <div id="progress-bar-inner"></div>
+                    </div>
+                </div>
+            </div>
+            <form id="quiz-form"></form>
+            <button id="submit-btn">Verifica le Risposte</button>
+        </div>
+
+        <!-- Contenitore dei Risultati (inizialmente nascosto) -->
+        <div id="results-container" class="hidden">
+            <h2 id="results-title"></h2>
+            <p id="score-text"></p>
+            <div id="results-details"></div>
+            <button id="back-to-menu-btn">Torna al Menù</button>
+        </div>
+    </main>
     <script src="script.js"></script>
 </body>
 </html>
