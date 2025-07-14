@@ -18,10 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsDetails = document.getElementById('results-details');
 
     let allQuestionsData = {};
+    let currentTestId = '';
     let currentTestQuestions = [];
     let gradableQuestionsCount = 0;
 
-    // Carica il file JSON con tutte le domande
+    // Carica il file JSON
     async function fetchQuestions() {
         try {
             const response = await fetch('quiz.json');
@@ -36,143 +37,122 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Inizia un quiz specifico
+    // Inizia un quiz
     function startQuiz(testId) {
+        currentTestId = testId;
         currentTestQuestions = allQuestionsData[testId];
         gradableQuestionsCount = currentTestQuestions.filter(q => q.type !== 'header' && q.type !== 'open_ended').length;
         
         quizTitle.textContent = currentTestQuestions.find(q => q.type === 'header').text || `Test`;
         renderQuestions();
 
-        menuContainer.classList.add('hidden');
-        resultsContainer.classList.add('hidden');
-        quizContainer.classList.remove('hidden');
-        updateProgress(0);
+        menuContainer.classList.add('d-none');
+        resultsContainer.classList.add('d-none');
+        quizContainer.classList.remove('d-none');
+        updateProgress();
     }
 
-    // Renderizza le domande nel form
+    // Renderizza le domande
     function renderQuestions() {
         let formHTML = '';
-        let questionCounter = 0;
-        
         currentTestQuestions.forEach((q, index) => {
             if (q.type === 'header') {
                 formHTML += `<h3 class="section-header">${q.text}</h3>`;
                 return;
             }
 
-            questionCounter++;
-            formHTML += `
-                <div class="question-block" id="q-block-${index}">
-                    <p class="question-text">${q.question}</p>
-                    <div class="options-container">
-            `;
+            formHTML += `<div class="question-block" id="q-block-${index}"><p class="question-text">${q.question}</p><div class="options-container">`;
             
             switch (q.type) {
                 case 'multiple_choice':
                 case 'true_false':
                     const options = q.type === 'true_false' ? ['Vero', 'Falso'] : q.options;
                     options.forEach(option => {
+                        const optionId = `q-${index}-${option.replace(/[^a-zA-Z0-9]/g, '')}`;
                         const optionValue = q.type === 'true_false' ? (option === 'Vero' ? 'true' : 'false') : option;
                         formHTML += `
-                            <div>
-                                <input type="radio" name="q-${index}" id="q-${index}-${option.replace(/[^a-zA-Z0-9]/g, '')}" value="${optionValue}" required>
-                                <label for="q-${index}-${option.replace(/[^a-zA-Z0-9]/g, '')}">${option}</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="q-${index}" id="${optionId}" value="${optionValue}" required>
+                                <label class="form-check-label" for="${optionId}">${option}</label>
                             </div>
                         `;
                     });
                     break;
                 case 'short_answer':
-                    formHTML += `<input type="text" class="short-answer-input" name="q-${index}" placeholder="La tua risposta..." required>`;
+                    formHTML += `<input type="text" class="form-control" name="q-${index}" placeholder="La tua risposta..." required>`;
                     break;
                 case 'open_ended':
-                    formHTML += `<textarea class="open-ended-input" name="q-${index}" rows="4" placeholder="Spiega con parole tue..."></textarea>`;
+                    formHTML += `<textarea class="form-control" name="q-${index}" rows="4" placeholder="Spiega con parole tue..."></textarea>`;
                     break;
             }
-            
             formHTML += '</div></div>';
         });
 
         quizForm.innerHTML = formHTML;
-        
-        // Aggiungi event listener per aggiornare la progress bar
-        quizForm.querySelectorAll('input, textarea').forEach(input => {
-            input.addEventListener('change', () => {
-                const answeredQuestions = Array.from(new Set(
-                    Array.from(quizForm.querySelectorAll('input:checked, input[type=text][value!=""], textarea:not(:placeholder-shown)'))
-                    .map(el => el.name)
-                )).length;
-                updateProgress(answeredQuestions);
-            });
-        });
+        quizForm.addEventListener('change', updateProgress);
     }
-
-    function updateProgress(answeredCount) {
+    
+    // Aggiorna la barra di progresso
+    function updateProgress() {
         const totalQuestions = currentTestQuestions.filter(q => q.type !== 'header').length;
-        progressText.textContent = `Domanda ${answeredCount} di ${totalQuestions}`;
-        const progressPercentage = (answeredCount / totalQuestions) * 100;
+        const answeredInputs = quizForm.querySelectorAll('input:checked, input[type=text]:not(:placeholder-shown), textarea:not(:placeholder-shown)');
+        const answeredQuestions = new Set(Array.from(answeredInputs).map(el => el.name)).size;
+        
+        progressText.textContent = `Domanda ${answeredQuestions} di ${totalQuestions}`;
+        const progressPercentage = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
         progressBarInner.style.width = `${progressPercentage}%`;
     }
 
-    // Controlla le risposte e mostra i risultati
-    function handleSubmit() {
+    // Gestisce l'invio e la correzione
+    function handleSubmit(e) {
+        e.preventDefault();
         let score = 0;
         let resultsHTML = '';
 
         currentTestQuestions.forEach((q, index) => {
             if (q.type === 'header') return;
 
-            const questionBlock = document.getElementById(`q-block-${index}`);
-            let userAnswer;
             const inputElement = document.querySelector(`[name="q-${index}"]:checked`) || document.querySelector(`[name="q-${index}"]`);
-            userAnswer = inputElement ? inputElement.value.trim().toLowerCase() : "";
+            const userAnswer = inputElement ? inputElement.value.trim() : "";
 
             let isCorrect = false;
+            let resultClass = 'open';
             
             if (q.type !== 'open_ended') {
-                isCorrect = userAnswer === q.answer.toString().toLowerCase();
+                isCorrect = userAnswer.toLowerCase() === q.answer.toString().toLowerCase();
                 if (isCorrect) {
                     score++;
+                    resultClass = 'correct';
+                } else {
+                    resultClass = 'incorrect';
                 }
             }
 
-            // Prepara il HTML per i dettagli del risultato
-            if(q.type !== 'open_ended'){
-                resultsHTML += `
-                    <div class="result-item ${isCorrect ? 'correct' : 'incorrect'}">
-                        <p class="result-question">${q.question}</p>
-                        <p><strong>La tua risposta:</strong> ${userAnswer || "<em>Nessuna risposta</em>"}</p>
-                        ${!isCorrect ? `<p class="result-explanation"><strong>Spiegazione:</strong> ${q.explanation}</p>` : ''}
-                    </div>
-                `;
-            } else {
-                 resultsHTML += `
-                    <div class="result-item">
-                        <p class="result-question">${q.question}</p>
-                        <p><strong>La tua risposta:</strong> ${userAnswer || "<em>Nessuna risposta</em>"}</p>
-                        <p class="result-explanation"><strong>Risposta Modello:</strong> ${q.model_answer}</p>
-                    </div>
-                `;
-            }
+            resultsHTML += `
+                <div class="result-item ${resultClass}">
+                    <p class="result-question">${q.question}</p>
+                    <p><strong>La tua risposta:</strong> ${userAnswer || "<em>Nessuna risposta</em>"}</p>
+                    <p class="result-explanation"><strong>Spiegazione:</strong> ${q.explanation || q.model_answer}</p>
+                </div>
+            `;
         });
 
-        resultsTitle.textContent = 'Riepilogo del Tuo Test';
-        scoreText.textContent = `Punteggio: ${score} su ${gradableQuestionsCount}`;
+        resultsTitle.textContent = `Risultati - ${quizTitle.textContent}`;
+        scoreText.textContent = `${score} / ${gradableQuestionsCount}`;
         resultsDetails.innerHTML = resultsHTML;
 
-        quizContainer.classList.add('hidden');
-        resultsContainer.classList.remove('hidden');
+        quizContainer.classList.add('d-none');
+        resultsContainer.classList.remove('d-none');
     }
 
     function resetToMenu() {
-        resultsContainer.classList.add('hidden');
-        menuContainer.classList.remove('hidden');
+        resultsContainer.classList.add('d-none');
+        menuContainer.classList.remove('d-none');
     }
     
     // Event Listeners
     submitBtn.addEventListener('click', handleSubmit);
     backToMenuBtn.addEventListener('click', resetToMenu);
 
-    // Inizia l'applicazione
     fetchQuestions();
 });
