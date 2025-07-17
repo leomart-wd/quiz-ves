@@ -6,24 +6,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const historyContainer = document.getElementById('history-container');
     const numQuestionsInput = document.getElementById('num-questions');
     
-    // Contenitori dinamici all'interno del quiz e dei risultati
-    const quizTitle = document.getElementById('quiz-title');
-    const quizForm = document.getElementById('quiz-form');
-    const progressText = document.getElementById('progress-text');
-    const progressBarInner = document.getElementById('progress-bar-inner');
-    const submitBtn = document.getElementById('submit-btn');
-    
+    // Pulsanti e contenitori statici
     const viewHistoryBtn = document.getElementById('view-history-btn');
     const backToMenuFromHistoryBtn = document.getElementById('back-to-menu-from-history-btn');
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     const historyContent = document.getElementById('history-content');
     
+    // Elementi per la ricerca
     const searchToggleBtn = document.getElementById('search-toggle-btn');
     const searchOverlay = document.getElementById('search-overlay');
     const searchCloseBtn = document.getElementById('search-close-btn');
     const searchInput = document.getElementById('search-input');
     const searchResultsContainer = document.getElementById('search-results-container');
 
+    // Elementi del Tutor
     const tutorButton = document.getElementById('tutor-button');
 
     let allQuestionsData = {};
@@ -43,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initializeApp() {
         try {
             const response = await fetch('quiz.json');
-            if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+            if (!response.ok) throw new Error('Network response was not ok');
             allQuestionsData = await response.json();
             
             buildSearchIndex(); 
@@ -53,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error('Failed to fetch questions:', error);
-            menuContainer.innerHTML = `<h1>Errore di Caricamento</h1><p>Impossibile caricare il file delle domande (quiz.json). Controlla che il file esista nel repository e che il nome sia corretto (tutto minuscolo).</p><p>Dettaglio errore: ${error.message}</p>`;
+            menuContainer.innerHTML = '<h1>Errore</h1><p>Impossibile caricare il test. Riprova più tardi.</p>';
         }
     }
 
@@ -65,11 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (q.type !== 'header') {
                     let answerText = '';
                     if (q.type === 'open_ended' && q.model_answer) {
-                        if (typeof q.model_answer === 'object' && q.model_answer.summary) {
-                            answerText = q.model_answer.summary + ' ' + q.model_answer.keywords.map(kw => kw.keyword + ' ' + kw.explanation).join(' ');
-                        } else {
-                            answerText = q.model_answer;
-                        }
+                        answerText = q.model_answer.summary + ' ' + q.model_answer.keywords.map(kw => kw.keyword + ' ' + kw.explanation).join(' ');
                     } else {
                         answerText = q.explanation || '';
                     }
@@ -102,36 +94,58 @@ document.addEventListener('DOMContentLoaded', () => {
             currentTestQuestions = questionPool; 
         }
         
-        quizTitle.textContent = document.querySelector(`[data-testid="${testId}"]`).textContent;
-        renderQuestions();
+        const testTitleText = document.querySelector(`[data-testid="${testId}"]`).textContent;
+        renderQuizUI(testTitleText);
 
         menuContainer.classList.add('d-none');
+        resultsContainer.classList.add('d-none');
+        historyContainer.classList.add('d-none');
         quizContainer.classList.remove('d-none');
     }
 
+    function renderQuizUI(title) {
+        const quizHeaderHTML = `
+            <div class="card-body p-md-5 p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="quiz-title-text">${title}</h2>
+                    <button id="back-to-menu-during-quiz-btn" class="btn btn-sm btn-outline-secondary">Torna al Menù</button>
+                </div>
+                <div id="progress-container" class="mb-4">
+                    <p id="progress-text" class="mb-1 text-center"></p>
+                    <div class="progress" style="height: 10px;">
+                        <div id="progress-bar-inner" class="progress-bar" role="progressbar"></div>
+                    </div>
+                </div>
+                <form id="quiz-form"></form>
+                <div class="d-grid mt-4">
+                    <button id="submit-btn" class="btn btn-lg btn-warning">Verifica le Risposte</button>
+                </div>
+            </div>`;
+            
+        quizContainer.innerHTML = quizHeaderHTML;
+        renderQuestions();
+        
+        quizContainer.querySelector('#back-to-menu-during-quiz-btn').addEventListener('click', handleBackToMenuDuringQuiz);
+        quizContainer.querySelector('#submit-btn').addEventListener('click', handleSubmit);
+        quizContainer.querySelector('#quiz-form').addEventListener('input', updateProgress);
+    }
+    
     function renderQuestions() {
+        const quizForm = quizContainer.querySelector('#quiz-form');
         let formHTML = '';
         let questionCounter = 0;
         
-        const questionsToRender = (currentTestId === 'test3' || currentTestId === 'test4') ? allQuestionsData[currentTestId] : currentTestQuestions;
-
-        questionsToRender.forEach((q, index) => {
-            if (q.type === 'header') {
-                formHTML += `<h3 class="section-header">${q.text}</h3>`;
-                return;
-            }
+        currentTestQuestions.forEach((q, index) => {
             questionCounter++;
-            const questionData = currentTestQuestions[index] || q;
-
-            formHTML += `<div class="question-block" id="q-block-${index}"><p class="question-text">${questionData.question}</p><div class="options-container">`;
+            formHTML += `<div class="question-block" id="q-block-${index}"><p class="question-text">${questionCounter}. ${q.question}</p><div class="options-container">`;
             
-            switch (questionData.type) {
+            switch (q.type) {
                 case 'multiple_choice':
                 case 'true_false':
-                    const options = questionData.type === 'true_false' ? ['Vero', 'Falso'] : questionData.options;
+                    const options = q.type === 'true_false' ? ['Vero', 'Falso'] : q.options;
                     options.forEach(option => {
                         const optionId = `q-${index}-${option.replace(/[^a-zA-Z0-9]/g, '')}`;
-                        const optionValue = questionData.type === 'true_false' ? (option === 'Vero' ? 'true' : 'false') : option;
+                        const optionValue = q.type === 'true_false' ? (option === 'Vero' ? 'true' : 'false') : option;
                         formHTML += `
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="q-${index}" id="${optionId}" value="${optionValue}" required>
@@ -154,6 +168,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function updateProgress() {
         const totalQuestions = currentTestQuestions.length;
+        const quizForm = quizContainer.querySelector('#quiz-form');
+        if (!quizForm) return;
+
         const inputs = quizForm.querySelectorAll('input[type=text], input[type=radio], textarea');
         const answeredNames = new Set();
         
@@ -164,9 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         const answeredCount = answeredNames.size;
-        progressText.textContent = `Domande risposte: ${answeredCount} di ${totalQuestions}`;
+        quizContainer.querySelector('#progress-text').textContent = `Domande risposte: ${answeredCount} di ${totalQuestions}`;
         const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
-        progressBarInner.style.width = `${progressPercentage}%`;
+        quizContainer.querySelector('#progress-bar-inner').style.width = `${progressPercentage}%`;
     }
 
     function handleSubmit(e) {
@@ -194,19 +211,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>`;
             } else {
                 let keywordsHTML = '';
-                if (q.model_answer && typeof q.model_answer === 'object' && q.model_answer.keywords) {
-                    q.model_answer.keywords.forEach((kw, kw_index) => {
-                        keywordsHTML += `
-                            <div class="form-check keyword-checklist-item">
-                                <input class="form-check-input" type="checkbox" id="kw-${index}-${kw_index}" data-index="${index}">
-                                <label class="form-check-label" for="kw-${index}-${kw_index}">
-                                    ${kw.keyword}
-                                    <i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" title="${kw.explanation}"></i>
-                                </label>
-                            </div>`;
-                    });
-                }
-                const summary = (q.model_answer && q.model_answer.summary) ? q.model_answer.summary : q.model_answer;
+                q.model_answer.keywords.forEach((kw, kw_index) => {
+                    keywordsHTML += `
+                        <div class="form-check keyword-checklist-item">
+                            <input class="form-check-input" type="checkbox" id="kw-${index}-${kw_index}" data-index="${index}">
+                            <label class="form-check-label" for="kw-${index}-${kw_index}">
+                                ${kw.keyword}
+                                <i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" data-bs-placement="top" title="${kw.explanation}"></i>
+                            </label>
+                        </div>`;
+                });
 
                 resultsHTML += `
                     <div class="result-item open">
@@ -218,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <div class="col-md-6">
                                 <strong>Concetti Chiave (autovalutazione):</strong>
-                                <div class="keyword-summary">${summary}</div>
+                                <div class="keyword-summary">${q.model_answer.summary}</div>
                                 <div id="checklist-${index}">${keywordsHTML}</div>
                                 <div class="progress mt-2" style="height: 10px;">
                                     <div class="progress-bar bg-success" id="progress-open-${index}" role="progressbar" style="width: 0%"></div>
@@ -234,17 +248,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const scoreDisplay = gradableCount > 0 ? `${score} / ${gradableCount}` : "Test di Autovalutazione";
+        const resultsPageHTML = `
+            <div class="card-body p-md-5 p-4">
+                <h2 class="text-center">${quizContainer.querySelector('h2').textContent} - Risultati</h2>
+                <p class="text-center display-5 fw-bold my-4">${scoreDisplay}</p>
+                <div class="mt-4">${resultsHTML}</div>
+                <div class="d-grid mt-5">
+                    <button id="back-to-menu-from-results-btn" class="btn btn-lg btn-secondary">Torna al Menù</button>
+                </div>
+            </div>`;
         
-        resultsContainer.querySelector('#results-title').textContent = `${quizTitle.textContent} - Risultati`;
-        resultsContainer.querySelector('#score-text').textContent = scoreDisplay;
-        resultsContainer.querySelector('#results-details').innerHTML = resultsHTML;
+        resultsContainer.innerHTML = resultsPageHTML;
+        resultsContainer.querySelector('#back-to-menu-from-results-btn').addEventListener('click', resetToMenu);
 
-        new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]', trigger: 'hover' });
+        new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]' });
 
         currentTestQuestions.forEach((q, index) => {
             if (q.type === 'open_ended') {
                 const checklist = document.getElementById(`checklist-${index}`);
-                if (checklist) {
+                if(checklist) {
                     checklist.addEventListener('change', () => {
                         const checkboxes = checklist.querySelectorAll('input[type="checkbox"]');
                         const checkedCount = checklist.querySelectorAll('input[type="checkbox"]:checked').length;
@@ -280,19 +302,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         Object.keys(allQuestionsData).forEach(testId => {
             const testHistory = history[testId];
-            if(!testHistory || testHistory.length === 0) return;
-            
             const testTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
             
             let testHTML = `<div class="mb-5"><h3>${testTitle}</h3>`;
-            const canvasId = `chart-${testId}`;
-            testHTML += `<div class="history-chart-container"><canvas id="${canvasId}"></canvas></div>`;
-            testHTML += `<table class="table table-striped table-hover history-table"><thead><tr><th>Data</th><th>Punteggio</th><th>Percentuale</th></tr></thead><tbody>`;
-            [...testHistory].reverse().slice(0, 10).forEach(result => {
-                const date = new Date(result.date);
-                testHTML += `<tr><td class="history-date">${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT')}</td><td><strong>${result.score} / ${result.total}</strong></td><td>${result.percentage}%</td></tr>`;
-            });
-            testHTML += '</tbody></table></div><hr>';
+            if (!testHistory || testHistory.length === 0) {
+                testHTML += '<p class="text-muted">Nessun tentativo registrato per questo test.</p>';
+            } else {
+                const canvasId = `chart-${testId}`;
+                testHTML += `<div class="history-chart-container"><canvas id="${canvasId}"></canvas></div>`;
+                testHTML += `<table class="table table-striped table-hover history-table"><thead><tr><th>Data</th><th>Punteggio</th><th>Percentuale</th></tr></thead><tbody>`;
+                [...testHistory].reverse().slice(0, 10).forEach(result => {
+                    const date = new Date(result.date);
+                    testHTML += `<tr><td class="history-date">${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT')}</td><td><strong>${result.score} / ${result.total}</strong></td><td>${result.percentage}%</td></tr>`;
+                });
+                testHTML += '</tbody></table>';
+            }
+            testHTML += '</div><hr>';
             historyContent.innerHTML += testHTML;
         });
 
@@ -348,14 +373,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Event Listeners
+    // Event Listeners per i pulsanti statici
     viewHistoryBtn.addEventListener('click', viewHistory);
     clearHistoryBtn.addEventListener('click', clearHistory);
     backToMenuFromHistoryBtn.addEventListener('click', resetToMenu);
-    searchToggleBtn.addEventListener('click', openSearch);
-    searchCloseBtn.addEventListener('click', closeSearch);
-    searchInput.addEventListener('input', performSearch);
+
+    // Event Listeners per la Ricerca
+    searchToggleBtn.addEventListener('click', () => {
+        searchOverlay.classList.remove('d-none');
+        document.body.style.overflow = 'hidden';
+        searchInput.focus();
+    });
+    searchCloseBtn.addEventListener('click', () => {
+        searchOverlay.classList.add('d-none');
+        document.body.style.overflow = '';
+    });
+    searchInput.addEventListener('keyup', performSearch);
     searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
+
+    // Event listener per il Tutor
     if(tutorButton) {
         tutorButton.addEventListener('click', () => {
             window.open('https://chatgpt.com/g/g-68778387b31081918d876453face6087-tutor-ves', 'TutorVES', 'width=500,height=700,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes');
