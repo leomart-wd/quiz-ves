@@ -1,36 +1,33 @@
-document.addEventListener('DOMContentLoaded', function() {
-
-    // -------------------------------------------
-    // 1. RIFERIMENTI AGLI ELEMENTI DEL DOM
-    // -------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+    // Riferimenti agli elementi del DOM
     const menuContainer = document.getElementById('menu-container');
     const quizContainer = document.getElementById('quiz-container');
     const resultsContainer = document.getElementById('results-container');
     const historyContainer = document.getElementById('history-container');
     const numQuestionsInput = document.getElementById('num-questions');
     
+    // Pulsanti e contenitori statici
     const viewHistoryBtn = document.getElementById('view-history-btn');
     const backToMenuFromHistoryBtn = document.getElementById('back-to-menu-from-history-btn');
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     const historyContent = document.getElementById('history-content');
     
+    // Elementi per la ricerca
     const searchToggleBtn = document.getElementById('search-toggle-btn');
     const searchOverlay = document.getElementById('search-overlay');
     const searchCloseBtn = document.getElementById('search-close-btn');
     const searchInput = document.getElementById('search-input');
     const searchResultsContainer = document.getElementById('search-results-container');
 
+    // Elementi del Tutor
     const tutorButton = document.getElementById('tutor-button');
 
     let allQuestionsData = {};
     let searchIndex = [];
     let currentTestId = '';
     let currentTestQuestions = [];
+    let currentTestTitle = '';
     let chartInstances = {};
-
-    // -------------------------------------------
-    // 2. FUNZIONI
-    // -------------------------------------------
 
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
@@ -39,35 +36,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return array;
     }
-    
-    function switchView(viewToShow) {
-        [menuContainer, quizContainer, resultsContainer, historyContainer].forEach(container => {
-            container.classList.add('d-none');
-        });
-        if (viewToShow) {
-            viewToShow.classList.remove('d-none');
-        }
-    }
 
     async function initializeApp() {
         try {
             const response = await fetch('quiz.json');
-            if (!response.ok) throw new Error(`Errore di rete: ${response.status}`);
+            if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
             allQuestionsData = await response.json();
-            buildSearchIndex();
+            
+            buildSearchIndex(); 
+
+            document.querySelectorAll('.menu-btn').forEach(button => {
+                button.addEventListener('click', () => startQuiz(button.dataset.testid));
+            });
         } catch (error) {
-            console.error('Impossibile caricare il quiz:', error);
-            menuContainer.innerHTML = '<h1>Errore</h1><p>Impossibile caricare i dati del test. Controlla il file quiz.json e la connessione.</p>';
+            console.error('Failed to fetch questions:', error);
+            menuContainer.innerHTML = `<h1>Errore di Caricamento</h1><p>Impossibile caricare il file delle domande (quiz.json). Controlla che il file esista e che il nome sia corretto (tutto minuscolo).</p><p>Dettaglio errore: ${error.message}</p>`;
         }
     }
 
     function buildSearchIndex() {
         searchIndex = [];
         Object.keys(allQuestionsData).forEach(testId => {
-            const testTitle = document.querySelector(`[data-testid="${testId}"]`)?.textContent || testId;
+            const testTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
             allQuestionsData[testId].forEach(q => {
                 if (q.type !== 'header') {
-                    let answerText = q.explanation || (q.model_answer && q.model_answer.summary ? (q.model_answer.summary + ' ' + q.model_answer.keywords.map(kw => kw.keyword + ' ' + kw.explanation).join(' ')) : '');
+                    let answerText = '';
+                    if (q.type === 'open_ended' && q.model_answer) {
+                        if (typeof q.model_answer === 'object' && q.model_answer.summary) {
+                            answerText = q.model_answer.summary + ' ' + q.model_answer.keywords.map(kw => kw.keyword + ' ' + kw.explanation).join(' ');
+                        } else {
+                            answerText = q.model_answer;
+                        }
+                    } else {
+                        answerText = q.explanation || '';
+                    }
                     searchIndex.push({
                         question: q.question,
                         text_to_search: `${q.question} ${answerText}`.toLowerCase(),
@@ -87,8 +89,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isRandomTest) {
             const numQuestionsToSelect = parseInt(numQuestionsInput.value, 10);
             const maxQuestions = questionPool.length;
-            if (numQuestionsToSelect > maxQuestions || numQuestionsToSelect < 1) {
-                alert(`Per favore, scegli un numero di domande tra 1 e ${maxQuestions}.`);
+            if (numQuestionsToSelect > maxQuestions || numQuestionsToSelect < 5) {
+                alert(`Per favore, scegli un numero di domande tra 5 e ${maxQuestions}.`);
                 return;
             }
             const shuffledQuestions = shuffleArray([...questionPool]);
@@ -97,13 +99,17 @@ document.addEventListener('DOMContentLoaded', function() {
             currentTestQuestions = questionPool; 
         }
         
-        const testTitleText = document.querySelector(`[data-testid="${testId}"]`).textContent;
-        renderQuizUI(testTitleText);
-        switchView(quizContainer);
+        currentTestTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
+        renderQuizUI(currentTestTitle);
+
+        menuContainer.classList.add('d-none');
+        resultsContainer.classList.add('d-none');
+        historyContainer.classList.add('d-none');
+        quizContainer.classList.remove('d-none');
     }
-    
+
     function renderQuizUI(title) {
-        const quizHTML = `
+        const quizHeaderHTML = `
             <div class="card-body p-md-5 p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="quiz-title-text">${title}</h2>
@@ -120,44 +126,42 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button id="submit-btn" class="btn btn-lg btn-warning">Verifica le Risposte</button>
                 </div>
             </div>`;
-        quizContainer.innerHTML = quizHTML;
+            
+        quizContainer.innerHTML = quizHeaderHTML;
         renderQuestions();
+        
+        quizContainer.querySelector('#back-to-menu-during-quiz-btn').addEventListener('click', handleBackToMenuDuringQuiz);
+        quizContainer.querySelector('#submit-btn').addEventListener('click', handleSubmit);
+        quizContainer.querySelector('#quiz-form').addEventListener('input', updateProgress);
     }
-
+    
     function renderQuestions() {
         const quizForm = quizContainer.querySelector('#quiz-form');
         let formHTML = '';
-        let questionCounter = 0;
         
-        const showHeaders = (currentTestId === 'test3' || currentTestId === 'test4');
-        const questionsToRender = showHeaders ? allQuestionsData[currentTestId] : currentTestQuestions;
-
-        questionsToRender.forEach((q, index) => {
-            if (q.type === 'header' && showHeaders) {
-                formHTML += `<h3 class="section-header">${q.text}</h3>`;
-                return;
-            }
-            if (q.type === 'header' && !showHeaders) return;
-            
-            questionCounter++;
-            const originalIndex = allQuestionsData[currentTestId].indexOf(q); 
-            formHTML += `<div class="question-block" id="q-block-${originalIndex}"><p class="question-text">${questionCounter}. ${q.question}</p><div class="options-container">`;
+        currentTestQuestions.forEach((q, index) => {
+            const questionNumber = index + 1;
+            formHTML += `<div class="question-block" id="q-block-${index}"><p class="question-text">${questionNumber}. ${q.question}</p><div class="options-container">`;
             
             switch (q.type) {
                 case 'multiple_choice':
                 case 'true_false':
                     const options = q.type === 'true_false' ? ['Vero', 'Falso'] : q.options;
                     options.forEach(option => {
-                        const optionId = `q-${originalIndex}-${option.replace(/[^a-zA-Z0-9]/g, '')}`;
+                        const optionId = `q-${index}-${option.replace(/[^a-zA-Z0-9]/g, '')}`;
                         const optionValue = q.type === 'true_false' ? (option === 'Vero' ? 'true' : 'false') : option;
-                        formHTML += `<div class="form-check"><input class="form-check-input" type="radio" name="q-${originalIndex}" id="${optionId}" value="${optionValue}" required><label class="form-check-label" for="${optionId}">${option}</label></div>`;
+                        formHTML += `
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="q-${index}" id="${optionId}" value="${optionValue}" required>
+                                <label class="form-check-label" for="${optionId}">${option}</label>
+                            </div>`;
                     });
                     break;
                 case 'short_answer':
-                    formHTML += `<input type="text" class="form-control" name="q-${originalIndex}" placeholder="La tua risposta..." required>`;
+                    formHTML += `<input type="text" class="form-control" name="q-${index}" placeholder="La tua risposta..." required>`;
                     break;
                 case 'open_ended':
-                    formHTML += `<textarea class="form-control" name="q-${originalIndex}" rows="4" placeholder="Spiega con parole tue..."></textarea>`;
+                    formHTML += `<textarea class="form-control" name="q-${index}" rows="4" placeholder="Spiega con parole tue..."></textarea>`;
                     break;
             }
             formHTML += '</div></div>';
@@ -165,18 +169,209 @@ document.addEventListener('DOMContentLoaded', function() {
         quizForm.innerHTML = formHTML;
         updateProgress();
     }
-
-    function updateProgress() { /* ... Logica identica a prima ... */ }
-    function handleSubmit(e) { /* ... Logica identica a prima, con la parte per le domande aperte ... */ }
-    function saveResult(testId, score, total) { /* ... Logica identica a prima ... */ }
-    function viewHistory() { /* ... Logica identica a prima ... */ }
-    function renderChart(testId, data) { /* ... Logica identica a prima ... */ }
-    function clearHistory() { /* ... Logica identica a prima ... */ }
     
-    function resetToMenu() {
-        switchView(menuContainer);
+    function updateProgress() {
+        const totalQuestions = currentTestQuestions.length;
         const quizForm = quizContainer.querySelector('#quiz-form');
-        if (quizForm) quizForm.reset();
+        if (!quizForm) return;
+
+        const inputs = quizForm.querySelectorAll('input[type=text], input[type=radio], textarea');
+        const answeredNames = new Set();
+        
+        inputs.forEach(input => {
+            if ((input.type === 'radio' && input.checked) || (input.type !== 'radio' && input.value.trim() !== '')) {
+                answeredNames.add(input.name);
+            }
+        });
+        
+        const answeredCount = answeredNames.size;
+        quizContainer.querySelector('#progress-text').textContent = `Domande risposte: ${answeredCount} di ${totalQuestions}`;
+        const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+        quizContainer.querySelector('#progress-bar-inner').style.width = `${progressPercentage}%`;
+    }
+
+    function handleSubmit(e) {
+        e.preventDefault();
+        let score = 0;
+        let resultsHTML = '';
+        const gradableCount = currentTestQuestions.filter(q => q.type !== 'open_ended').length;
+
+        currentTestQuestions.forEach((q, index) => {
+            const questionNumber = index + 1;
+            const inputElement = document.querySelector(`[name="q-${index}"]:checked`) || document.querySelector(`[name="q-${index}"]`);
+            const userAnswer = inputElement ? inputElement.value.trim() : "";
+
+            if (q.type !== 'open_ended') {
+                const isCorrect = userAnswer.toLowerCase() === q.answer.toString().toLowerCase();
+                let resultClass = isCorrect ? 'correct' : 'incorrect';
+                if (isCorrect) score++;
+                
+                resultsHTML += `
+                    <div class="result-item ${resultClass}">
+                        <p class="result-question">${questionNumber}. ${q.question}</p>
+                        <p><strong>La tua risposta:</strong> ${userAnswer || "<em>Nessuna risposta</em>"}</p>
+                        ${!isCorrect ? `<p class="result-explanation"><strong>Spiegazione:</strong> ${q.explanation}</p>` : ''}
+                    </div>`;
+            } else {
+                let keywordsHTML = '';
+                if (q.model_answer && typeof q.model_answer === 'object') {
+                    q.model_answer.keywords.forEach((kw, kw_index) => {
+                        keywordsHTML += `
+                            <div class="form-check keyword-checklist-item">
+                                <input class="form-check-input" type="checkbox" id="kw-${index}-${kw_index}">
+                                <label class="form-check-label" for="kw-${index}-${kw_index}">
+                                    ${kw.keyword}
+                                    <i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" title="${kw.explanation}"></i>
+                                </label>
+                            </div>`;
+                    });
+                }
+                const summary = (q.model_answer && q.model_answer.summary) ? q.model_answer.summary : q.model_answer;
+
+                resultsHTML += `
+                    <div class="result-item open">
+                        <p class="result-question">${questionNumber}. ${q.question}</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <strong>La tua risposta:</strong>
+                                <div class="user-answer-box">${userAnswer.replace(/</g, "<").replace(/>/g, ">") || "<em>Nessuna risposta</em>"}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Concetti Chiave (autovalutazione):</strong>
+                                <div class="keyword-summary">${summary}</div>
+                                <div id="checklist-${index}">${keywordsHTML}</div>
+                                <div class="progress mt-2" style="height: 10px;">
+                                    <div class="progress-bar bg-success" id="progress-open-${index}" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+        });
+        
+        if (gradableCount > 0) {
+            saveResult(currentTestId, score, gradableCount);
+        }
+
+        const scoreDisplay = gradableCount > 0 ? `${score} / ${gradableCount}` : "Test di Autovalutazione";
+        const resultsPageHTML = `
+            <div class="card-body p-md-5 p-4">
+                <h2 class="text-center">${currentTestTitle} - Risultati</h2>
+                <p class="text-center display-5 fw-bold my-4">${scoreDisplay}</p>
+                <div class="mt-4">${resultsHTML}</div>
+                <div class="d-grid mt-5">
+                    <button id="back-to-menu-from-results-btn" class="btn btn-lg btn-secondary">Torna al Menù</button>
+                </div>
+            </div>`;
+        
+        resultsContainer.innerHTML = resultsPageHTML;
+        resultsContainer.querySelector('#back-to-menu-from-results-btn').addEventListener('click', resetToMenu);
+
+        new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]', trigger: 'hover' });
+
+        currentTestQuestions.forEach((q, index) => {
+            if (q.type === 'open_ended') {
+                const checklist = document.getElementById(`checklist-${index}`);
+                if(checklist) {
+                    checklist.addEventListener('change', () => {
+                        const checkboxes = checklist.querySelectorAll('input[type="checkbox"]');
+                        const checkedCount = checklist.querySelectorAll('input[type="checkbox"]:checked').length;
+                        const progressPercentage = (checkedCount / checkboxes.length) * 100;
+                        document.getElementById(`progress-open-${index}`).style.width = `${progressPercentage}%`;
+                    });
+                }
+            }
+        });
+
+        quizContainer.classList.add('d-none');
+        resultsContainer.classList.remove('d-none');
+    }
+    
+    function saveResult(testId, score, total) {
+        const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
+        if (!history[testId]) history[testId] = [];
+        history[testId].push({ score, total, percentage: total > 0 ? Math.round((score / total) * 100) : 0, date: new Date().toISOString() });
+        localStorage.setItem('quizHistory', JSON.stringify(history));
+    }
+
+    function viewHistory() {
+        menuContainer.classList.add('d-none');
+        historyContainer.classList.remove('d-none');
+        
+        const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
+        historyContent.innerHTML = '';
+
+        if (Object.keys(history).length === 0) {
+            historyContent.innerHTML = '<p class="text-center text-muted">Nessun risultato salvato.</p>';
+            return;
+        }
+
+        Object.keys(allQuestionsData).forEach(testId => {
+            const testHistory = history[testId];
+            if(!testHistory) return;
+            const testTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
+            
+            let testHTML = `<div class="mb-5"><h3>${testTitle}</h3>`;
+            if (testHistory.length === 0) {
+                testHTML += '<p class="text-muted">Nessun tentativo registrato per questo test.</p>';
+            } else {
+                const canvasId = `chart-${testId}`;
+                testHTML += `<div class="history-chart-container"><canvas id="${canvasId}"></canvas></div>`;
+                testHTML += `<table class="table table-striped table-hover history-table"><thead><tr><th>Data</th><th>Punteggio</th><th>Percentuale</th></tr></thead><tbody>`;
+                [...testHistory].reverse().slice(0, 10).forEach(result => {
+                    const date = new Date(result.date);
+                    testHTML += `<tr><td class="history-date">${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT')}</td><td><strong>${result.score} / ${result.total}</strong></td><td>${result.percentage}%</td></tr>`;
+                });
+                testHTML += '</tbody></table>';
+            }
+            testHTML += '</div><hr>';
+            historyContent.innerHTML += testHTML;
+        });
+
+        Object.keys(history).forEach(testId => {
+            if (history[testId] && history[testId].length > 0) {
+                renderChart(testId, history[testId]);
+            }
+        });
+    }
+
+    function renderChart(testId, data) {
+        const canvas = document.getElementById(`chart-${testId}`);
+        if (!canvas) return;
+        if (chartInstances[testId]) chartInstances[testId].destroy();
+
+        const labels = data.map(r => new Date(r.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }));
+        const percentages = data.map(r => r.percentage);
+
+        chartInstances[testId] = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Andamento Punteggio (%)',
+                    data: percentages,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+        });
+    }
+
+    function clearHistory() {
+        if (confirm("Sei sicuro di voler cancellare TUTTO lo storico dei risultati? L'azione è irreversibile.")) {
+            localStorage.removeItem('quizHistory');
+            viewHistory();
+        }
+    }
+
+    function resetToMenu() {
+        quizContainer.classList.add('d-none');
+        resultsContainer.classList.add('d-none');
+        historyContainer.classList.add('d-none');
+        menuContainer.classList.remove('d-none');
     }
     
     function handleBackToMenuDuringQuiz() {
@@ -184,27 +379,62 @@ document.addEventListener('DOMContentLoaded', function() {
             resetToMenu();
         }
     }
+    
+    function openSearch() {
+        searchOverlay.classList.remove('d-none');
+        document.body.style.overflow = 'hidden';
+        searchInput.focus();
+    }
 
-    // --- Funzioni di Ricerca (invariate) ---
-    function performSearch() { /* ... Logica identica a prima ... */ }
-    function openSearch() { /* ... Logica identica a prima ... */ }
-    function closeSearch() { /* ... Logica identica a prima ... */ }
-    
-    // -------------------------------------------
-    // 3. EVENT LISTENERS
-    // -------------------------------------------
-    
-    // Aggiungo gli event listener agli elementi statici della pagina
-    document.querySelectorAll('.menu-btn').forEach(button => {
-        button.addEventListener('click', () => startQuiz(button.dataset.testid));
-    });
+    function closeSearch() {
+        searchOverlay.classList.add('d-none');
+        document.body.style.overflow = '';
+        searchInput.value = '';
+        searchResultsContainer.innerHTML = '';
+    }
+
+    function performSearch() {
+        const query = searchInput.value.trim().toLowerCase();
+        if (query.length < 3) {
+            searchResultsContainer.innerHTML = '<p class="no-results">Scrivi almeno 3 caratteri per iniziare la ricerca.</p>';
+            return;
+        }
+
+        const results = searchIndex.filter(item => item.text_to_search.includes(query));
+
+        if (results.length === 0) {
+            searchResultsContainer.innerHTML = '<p class="no-results">Nessun risultato trovato.</p>';
+        } else {
+            let resultsHTML = '';
+            results.forEach(res => {
+                const highlightedExplanation = res.explanation.replace(
+                    new RegExp(query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi'),
+                    '<span class="highlight">$&</span>'
+                );
+                const highlightedQuestion = res.question.replace(
+                    new RegExp(query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi'),
+                    '<span class="highlight">$&</span>'
+                );
+
+                resultsHTML += `
+                    <div class="search-result-item">
+                        <small class="text-muted">${res.test}</small>
+                        <p class="search-result-question">${highlightedQuestion}</p>
+                        <p class="search-result-answer">${highlightedExplanation}</p>
+                    </div>
+                `;
+            });
+            searchResultsContainer.innerHTML = resultsHTML;
+        }
+    }
+
+    // Event Listeners
     viewHistoryBtn.addEventListener('click', viewHistory);
     clearHistoryBtn.addEventListener('click', clearHistory);
     backToMenuFromHistoryBtn.addEventListener('click', resetToMenu);
-
     searchToggleBtn.addEventListener('click', openSearch);
     searchCloseBtn.addEventListener('click', closeSearch);
-    searchInput.addEventListener('input', performSearch); // 'input' è meglio di 'keyup' per la ricerca live
+    searchInput.addEventListener('input', performSearch);
     searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
 
     if(tutorButton) {
@@ -213,25 +443,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Aggiungo gli event listener agli elementi che vengono creati dinamicamente (delega di eventi)
-    document.body.addEventListener('click', function(e) {
-        if (e.target && e.target.id === 'back-to-menu-during-quiz-btn') {
-            handleBackToMenuDuringQuiz();
-        }
-        if (e.target && e.target.id === 'submit-btn') {
-            handleSubmit(e);
-        }
-        if (e.target && e.target.id === 'back-to-menu-from-results-btn') {
-            resetToMenu();
-        }
-    });
-
-    document.body.addEventListener('input', function(e){
-        if(e.target.closest('#quiz-form')){
-            updateProgress();
-        }
-    });
-
-    // Avvio dell'applicazione
     initializeApp();
 });
