@@ -62,10 +62,3 @@ body {
 }
 
 /* ... (tutti gli altri stili della ricerca e del chatbot rimangono invariati) ... */
-
-/* ... Tutti gli stili precedenti ... */
-
-/* NUOVA CLASSE PER GARANTIRE LA VISIBILITÀ INIZIALE CORRETTA */
-#quiz-container.d-none, #results-container.d-none, #history-container.d-none {
-    display: none !important;
-}
