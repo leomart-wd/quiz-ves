@@ -50,15 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (button) button.addEventListener('click', () => startQuiz(button.dataset.testid));
             });
 
-            const reflectionModalElem = document.getElementById('reflection-modal');
-            if (reflectionModalElem && window.bootstrap) {
-                reflectionModal = new bootstrap.Modal(reflectionModalElem);
-            }
+            reflectionModal = new bootstrap.Modal(document.getElementById('reflection-modal'));
+
         } catch (error) {
             console.error('Failed to fetch questions:', error);
-            if (menuContainer) {
-                menuContainer.innerHTML = '<h1>Errore</h1><p>Impossibile caricare il test. Riprova più tardi.</p>';
-            }
+            menuContainer.innerHTML = '<h1>Errore</h1><p>Impossibile caricare il test. Riprova più tardi.</p>';
         }
     }
 
@@ -102,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isRandomTest) {
             const numQuestionsToSelect = parseInt(numQuestionsInput.value, 10);
             const maxQuestions = questionPool.length;
-            if (isNaN(numQuestionsToSelect) || numQuestionsToSelect > maxQuestions || numQuestionsToSelect < 1) {
+            if (numQuestionsToSelect > maxQuestions || numQuestionsToSelect < 1) {
                 alert(`Per favore, scegli un numero di domande tra 1 e ${maxQuestions}.`);
                 return;
             }
@@ -112,14 +108,13 @@ document.addEventListener('DOMContentLoaded', () => {
             currentTestQuestions = questionPool; 
         }
         
-        const testTitleElem = document.querySelector(`[data-testid="${testId}"]`);
-        const testTitleText = testTitleElem ? testTitleElem.textContent : '';
+        const testTitleText = document.querySelector(`[data-testid="${testId}"]`).textContent;
         renderQuizUI(testTitleText);
 
-        if (menuContainer) menuContainer.classList.add('d-none');
-        if (resultsContainer) resultsContainer.classList.add('d-none');
-        if (historyContainer) historyContainer.classList.add('d-none');
-        if (quizContainer) quizContainer.classList.remove('d-none');
+        menuContainer.classList.add('d-none');
+        resultsContainer.classList.add('d-none');
+        historyContainer.classList.add('d-none');
+        quizContainer.classList.remove('d-none');
     }
 
     function renderQuizUI(title) {
@@ -188,14 +183,11 @@ document.addEventListener('DOMContentLoaded', () => {
         quizForm.innerHTML = formHTML;
 
         quizForm.querySelectorAll('.help-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            if (btn) btn.addEventListener('click', (e) => {
                 e.preventDefault(); 
                 const prompt = e.currentTarget.dataset.reflection;
-                const reflectionModalBody = document.getElementById('reflection-modal-body');
-                if (reflectionModalBody) {
-                    reflectionModalBody.textContent = prompt;
-                }
-                if (reflectionModal) reflectionModal.show();
+                document.getElementById('reflection-modal-body').textContent = prompt;
+                reflectionModal.show();
             });
         });
         updateProgress();
@@ -215,8 +207,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        quizContainer.querySelector('#progress-text').textContent = `Domande risposte: ${answeredNames.size} di ${totalQuestions}`;
-        const progressPercentage = totalQuestions > 0 ? (answeredNames.size / totalQuestions) * 100 : 0;
+        const answeredCount = answeredNames.size;
+        quizContainer.querySelector('#progress-text').textContent = `Domande risposte: ${answeredCount} di ${totalQuestions}`;
+        const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
         quizContainer.querySelector('#progress-bar-inner').style.width = `${progressPercentage}%`;
     }
 
@@ -238,44 +231,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isCorrect) score++;
                 
                 resultsHTML += `<div class="result-item ${resultClass}"><p class="result-question">${questionCounter}. ${q.question}</p><p><strong>La tua risposta:</strong> ${userAnswer || "<em>Nessuna risposta</em>"}</p>${!isCorrect ? `<p class="result-explanation"><strong>Spiegazione:</strong> ${q.explanation}</p>` : ''}</div>`;
-  } else {
-    let keywordsHTML = '';
-    let modelAnswerHTML = '';
-    if (q.model_answer) {
-        // Show summary and keywords as a "Risposta corretta"
-        modelAnswerHTML += `<div class="model-answer-section"><strong>Risposta corretta:</strong> <div class="model-answer-summary">${q.model_answer.summary || ""}</div>`;
-        if (q.model_answer.keywords && q.model_answer.keywords.length > 0) {
-            modelAnswerHTML += `<ul class="model-answer-keywords">`;
-            q.model_answer.keywords.forEach(kw =>
-                modelAnswerHTML += `<li><strong>${kw.keyword}</strong>: ${kw.explanation}</li>`
-            );
-            modelAnswerHTML += `</ul>`;
-        }
-        modelAnswerHTML += `</div>`;
-    }
-    if (q.model_answer && q.model_answer.keywords) {
-        q.model_answer.keywords.forEach((kw, kw_index) => {
-            keywordsHTML += `<div class="form-check keyword-checklist-item"><input class="form-check-input" type="checkbox" id="kw-${index}-${kw_index}"><label class="form-check-label" for="kw-${index}-${kw_index}"><span>${kw.keyword}</span><i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" data-bs-placement="top" title="${kw.explanation}"></i></label></div>`;
-        });
-    }
-    resultsHTML += `<div class="result-item open"><p class="result-question">${questionCounter}. ${q.question}</p>
-        <div class="row">
-            <div class="col-md-6 mb-3 mb-md-0">
-                <strong>La tua risposta:</strong>
-                <div class="user-answer-box">${userAnswer.replace(/</g, "<").replace(/>/g, ">") || "<em>Nessuna risposta</em>"}</div>
-                ${modelAnswerHTML}
-            </div>
-            <div class="col-md-6">
-                <strong>Concetti Chiave (autovalutazione):</strong>
-                <div class="keyword-summary">${q.model_answer ? q.model_answer.summary : ''}</div>
-                <div id="checklist-${index}">${keywordsHTML}</div>
-                <div class="progress mt-2" style="height: 10px;">
-                    <div class="progress-bar bg-success" id="progress-open-${index}" role="progressbar" style="width: 0%"></div>
-                </div>
-            </div>
-        </div>
-    </div>`;
-}
+            } else {
+                // Show model answer for open-ended questions
+                let keywordsHTML = '';
+                let modelAnswerHTML = '';
+                if (q.model_answer) {
+                    modelAnswerHTML += `<div class="model-answer-section"><strong>Risposta corretta:</strong><div class="model-answer-summary">${q.model_answer.summary || ""}</div>`;
+                    if (q.model_answer.keywords && q.model_answer.keywords.length > 0) {
+                        modelAnswerHTML += `<ul class="model-answer-keywords">`;
+                        q.model_answer.keywords.forEach(kw => {
+                            modelAnswerHTML += `<li><strong>${kw.keyword}</strong>: ${kw.explanation}</li>`;
+                        });
+                        modelAnswerHTML += `</ul>`;
+                    }
+                    modelAnswerHTML += `</div>`;
+                }
+                if (q.model_answer && q.model_answer.keywords) {
+                    q.model_answer.keywords.forEach((kw, kw_index) => {
+                        keywordsHTML += `<div class="form-check keyword-checklist-item"><input class="form-check-input" type="checkbox" id="kw-${index}-${kw_index}"><label class="form-check-label" for="kw-${index}-${kw_index}"><span>${kw.keyword}</span><i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" data-bs-placement="top" title="${kw.explanation}"></i></label></div>`;
+                    });
+                }
+                resultsHTML += `<div class="result-item open"><p class="result-question">${questionCounter}. ${q.question}</p>
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <strong>La tua risposta:</strong>
+                            <div class="user-answer-box">${userAnswer.replace(/</g, "<").replace(/>/g, ">") || "<em>Nessuna risposta</em>"}</div>
+                            ${modelAnswerHTML}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Concetti Chiave (autovalutazione):</strong>
+                            <div class="keyword-summary">${q.model_answer ? q.model_answer.summary : ''}</div>
+                            <div id="checklist-${index}">${keywordsHTML}</div>
+                            <div class="progress mt-2" style="height: 10px;">
+                                <div class="progress-bar bg-success" id="progress-open-${index}" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }
         });
         
         if (gradableCount > 0) {
@@ -297,22 +290,17 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer.querySelector('#back-to-menu-from-results-btn').addEventListener('click', resetToMenu);
         resultsContainer.querySelector('#save-pdf-btn').addEventListener('click', generatePdf);
 
-
-        if (window.bootstrap) {
-            new bootstrap.Tooltip(resultsContainer, { selector: '[data-bs-toggle="tooltip"]', trigger: 'hover', html: true });
-        }
+        new bootstrap.Tooltip(resultsContainer, { selector: '[data-bs-toggle="tooltip"]', trigger: 'hover', html: true });
 
         currentTestQuestions.forEach((q, index) => {
             if (q.type === 'open_ended') {
                 const checklist = document.getElementById(`checklist-${index}`);
-                if (checklist) {
-                    checklist.addEventListener('change', () => {
-                        const checkboxes = checklist.querySelectorAll('input[type="checkbox"]');
-                        const checkedCount = checklist.querySelectorAll('input[type="checkbox"]:checked').length;
-                        const progressPercentage = (checkboxes.length > 0) ? (checkedCount / checkboxes.length) * 100 : 0;
-                        document.getElementById(`progress-open-${index}`).style.width = `${progressPercentage}%`;
-                    });
-                }
+                if (checklist) checklist.addEventListener('change', () => {
+                    const checkboxes = checklist.querySelectorAll('input[type="checkbox"]');
+                    const checkedCount = checklist.querySelectorAll('input[type="checkbox"]:checked').length;
+                    const progressPercentage = (checkboxes.length > 0) ? (checkedCount / checkboxes.length) * 100 : 0;
+                    document.getElementById(`progress-open-${index}`).style.width = `${progressPercentage}%`;
+                });
             }
         });
 
@@ -345,22 +333,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function viewHistory() {
-        if (menuContainer) menuContainer.classList.add('d-none');
-        if (historyContainer) historyContainer.classList.remove('d-none');
+        menuContainer.classList.add('d-none');
+        historyContainer.classList.remove('d-none');
         
         const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
-        if (historyContent) historyContent.innerHTML = '';
+        historyContent.innerHTML = '';
 
         if (Object.keys(history).length === 0) {
-            if (historyContent) historyContent.innerHTML = '<p class="text-center text-muted">Nessun risultato salvato.</p>';
+            historyContent.innerHTML = '<p class="text-center text-muted">Nessun risultato salvato.</p>';
             return;
         }
 
         Object.keys(allQuestionsData).forEach(testId => {
             if (!allQuestionsData[testId].filter) return;
             const testHistory = history[testId];
-            const testTitleElem = document.querySelector(`[data-testid="${testId}"]`);
-            const testTitle = testTitleElem ? testTitleElem.textContent : '';
+            const testTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
             
             let testHTML = `<div class="mb-5"><h3>${testTitle}</h3>`;
             if (!testHistory || testHistory.length === 0) {
@@ -376,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 testHTML += '</tbody></table>';
             }
             testHTML += '</div><hr>';
-            if (historyContent) historyContent.innerHTML += testHTML;
+            historyContent.innerHTML += testHTML;
         });
 
         Object.keys(history).forEach(testId => {
@@ -419,10 +406,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetToMenu() {
-        if (quizContainer) quizContainer.classList.add('d-none');
-        if (resultsContainer) resultsContainer.classList.add('d-none');
-        if (historyContainer) historyContainer.classList.add('d-none');
-        if (menuContainer) menuContainer.classList.remove('d-none');
+        quizContainer.classList.add('d-none');
+        resultsContainer.classList.add('d-none');
+        historyContainer.classList.add('d-none');
+        menuContainer.classList.remove('d-none');
     }
     
     function handleBackToMenuDuringQuiz() {
@@ -456,10 +443,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function closeSearch() {
-        if (searchOverlay) searchOverlay.classList.add('d-none');
+        searchOverlay.classList.add('d-none');
         document.body.style.overflow = '';
-        if (searchInput) searchInput.value = '';
-        if (searchResultsContainer) searchResultsContainer.innerHTML = '';
+        searchInput.value = '';
+        searchResultsContainer.innerHTML = '';
     }
 
     // Event Listeners
@@ -467,16 +454,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', clearHistory);
     if (backToMenuFromHistoryBtn) backToMenuFromHistoryBtn.addEventListener('click', resetToMenu);
 
-    if (searchToggleBtn) searchToggleBtn.addEventListener('click', () => { 
-        if (searchOverlay) searchOverlay.classList.remove('d-none'); 
-        document.body.style.overflow = 'hidden'; 
-        if (searchInput) searchInput.focus(); 
-    });
+    if (searchToggleBtn) searchToggleBtn.addEventListener('click', () => { searchOverlay.classList.remove('d-none'); document.body.style.overflow = 'hidden'; searchInput.focus(); });
     if (searchCloseBtn) searchCloseBtn.addEventListener('click', closeSearch);
     if (searchInput) searchInput.addEventListener('input', performSearch);
     if (searchOverlay) searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
 
-    if (tutorButton) {
+    if(tutorButton) {
         tutorButton.addEventListener('click', () => {
             window.open('https://chatgpt.com/g/g-68778387b31081918d876453face6087-tutor-ves', 'TutorVES', 'width=500,height=700');
         });
