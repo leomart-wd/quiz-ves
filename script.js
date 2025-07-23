@@ -238,15 +238,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isCorrect) score++;
                 
                 resultsHTML += `<div class="result-item ${resultClass}"><p class="result-question">${questionCounter}. ${q.question}</p><p><strong>La tua risposta:</strong> ${userAnswer || "<em>Nessuna risposta</em>"}</p>${!isCorrect ? `<p class="result-explanation"><strong>Spiegazione:</strong> ${q.explanation}</p>` : ''}</div>`;
-            } else {
-                let keywordsHTML = '';
-                if (q.model_answer && q.model_answer.keywords) {
-                    q.model_answer.keywords.forEach((kw, kw_index) => {
-                        keywordsHTML += `<div class="form-check keyword-checklist-item"><input class="form-check-input" type="checkbox" id="kw-${index}-${kw_index}"><label class="form-check-label" for="kw-${index}-${kw_index}"><span>${kw.keyword}</span><i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" data-bs-placement="top" title="${kw.explanation}"></i></label></div>`;
-                    });
-                }
-                resultsHTML += `<div class="result-item open"><p class="result-question">${questionCounter}. ${q.question}</p><div class="row"><div class="col-md-6 mb-3 mb-md-0"><strong>La tua risposta:</strong><div class="user-answer-box">${userAnswer.replace(/</g, "<").replace(/>/g, ">") || "<em>Nessuna risposta</em>"}</div></div><div class="col-md-6"><strong>Concetti Chiave (autovalutazione):</strong><div class="keyword-summary">${q.model_answer ? q.model_answer.summary : ''}</div><div id="checklist-${index}">${keywordsHTML}</div><div class="progress mt-2" style="height: 10px;"><div class="progress-bar bg-success" id="progress-open-${index}" role="progressbar" style="width: 0%"></div></div></div></div></div>`;
-            }
+  } else {
+    let keywordsHTML = '';
+    let modelAnswerHTML = '';
+    if (q.model_answer) {
+        // Show summary and keywords as a "Risposta corretta"
+        modelAnswerHTML += `<div class="model-answer-section"><strong>Risposta corretta:</strong> <div class="model-answer-summary">${q.model_answer.summary || ""}</div>`;
+        if (q.model_answer.keywords && q.model_answer.keywords.length > 0) {
+            modelAnswerHTML += `<ul class="model-answer-keywords">`;
+            q.model_answer.keywords.forEach(kw =>
+                modelAnswerHTML += `<li><strong>${kw.keyword}</strong>: ${kw.explanation}</li>`
+            );
+            modelAnswerHTML += `</ul>`;
+        }
+        modelAnswerHTML += `</div>`;
+    }
+    if (q.model_answer && q.model_answer.keywords) {
+        q.model_answer.keywords.forEach((kw, kw_index) => {
+            keywordsHTML += `<div class="form-check keyword-checklist-item"><input class="form-check-input" type="checkbox" id="kw-${index}-${kw_index}"><label class="form-check-label" for="kw-${index}-${kw_index}"><span>${kw.keyword}</span><i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" data-bs-placement="top" title="${kw.explanation}"></i></label></div>`;
+        });
+    }
+    resultsHTML += `<div class="result-item open"><p class="result-question">${questionCounter}. ${q.question}</p>
+        <div class="row">
+            <div class="col-md-6 mb-3 mb-md-0">
+                <strong>La tua risposta:</strong>
+                <div class="user-answer-box">${userAnswer.replace(/</g, "<").replace(/>/g, ">") || "<em>Nessuna risposta</em>"}</div>
+                ${modelAnswerHTML}
+            </div>
+            <div class="col-md-6">
+                <strong>Concetti Chiave (autovalutazione):</strong>
+                <div class="keyword-summary">${q.model_answer ? q.model_answer.summary : ''}</div>
+                <div id="checklist-${index}">${keywordsHTML}</div>
+                <div class="progress mt-2" style="height: 10px;">
+                    <div class="progress-bar bg-success" id="progress-open-${index}" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>`;
+}
         });
         
         if (gradableCount > 0) {
