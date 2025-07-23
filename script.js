@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let chartInstances = {};
     let reflectionModal;
 
+    // Funzione per mescolare un array
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -87,8 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTestId = testId;
         const questionPool = allQuestionsData[testId] ? allQuestionsData[testId].filter(q => q.type !== 'header') : [];
         
-        if (questionPool.length === 0) {
-            alert(`Attenzione: non ci sono domande disponibili per il test '${testId}'.`);
+        if (questionPool.length === 0 && testId) {
+            alert(`Attenzione: non ci sono domande disponibili per il test '${testId}'. Controlla il file quiz.json.`);
             return;
         }
 
@@ -183,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         quizForm.querySelectorAll('.help-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                e.preventDefault(); // Impedisce il submit del form
+                e.preventDefault(); 
                 const prompt = e.currentTarget.dataset.reflection;
                 document.getElementById('reflection-modal-body').textContent = prompt;
                 reflectionModal.show();
@@ -246,10 +247,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const scoreDisplay = gradableCount > 0 ? `${score} / ${gradableCount}` : "Test di Autovalutazione";
-        const resultsPageHTML = `<div class="card-body p-md-5 p-4"><h2 class="text-center">${quizContainer.querySelector('.quiz-title-text').textContent} - Risultati</h2><p class="text-center display-5 fw-bold my-4">${scoreDisplay}</p><div class="mt-4">${resultsHTML}</div><div class="d-grid mt-5"><button id="back-to-menu-from-results-btn" class="btn btn-lg btn-secondary">Torna al Menù</button></div></div>`;
+        const resultsPageHTML = `<div class="card-body p-md-5 p-4">
+                <h2 class="text-center">${quizContainer.querySelector('.quiz-title-text').textContent} - Risultati</h2>
+                <p class="text-center display-5 fw-bold my-4">${scoreDisplay}</p>
+                <div class="mt-4">${resultsHTML}</div>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-5">
+                    <button id="back-to-menu-from-results-btn" class="btn btn-lg btn-secondary">Torna al Menù</button>
+                    <button id="save-pdf-btn" class="btn btn-lg btn-danger"><i class="bi bi-file-earmark-pdf-fill"></i> Salva Risultati in PDF</button>
+                </div>
+            </div>`;
         
         resultsContainer.innerHTML = resultsPageHTML;
         resultsContainer.querySelector('#back-to-menu-from-results-btn').addEventListener('click', resetToMenu);
+        resultsContainer.querySelector('#save-pdf-btn').addEventListener('click', generatePdf);
+
 
         new bootstrap.Tooltip(resultsContainer, { selector: '[data-bs-toggle="tooltip"]', trigger: 'hover', html: true });
 
@@ -270,7 +281,24 @@ document.addEventListener('DOMContentLoaded', () => {
         quizContainer.classList.add('d-none');
         resultsContainer.classList.remove('d-none');
     }
-    
+
+    function generatePdf() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const resultsContent = resultsContainer.querySelector('.mt-4').innerText;
+        const testTitle = resultsContainer.querySelector('h2').textContent;
+        const score = resultsContainer.querySelector('p.display-5').textContent;
+
+        doc.setFontSize(18);
+        doc.text(testTitle, 105, 20, { align: 'center' });
+        doc.setFontSize(14);
+        doc.text(`Punteggio: ${score}`, 105, 30, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text(resultsContent, 20, 45);
+        
+        doc.save(`risultati_${currentTestId}_${new Date().toISOString().slice(0,10)}.pdf`);
+    }
+
     function saveResult(testId, score, total) {
         const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
         if (!history[testId]) history[testId] = [];
@@ -291,6 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         Object.keys(allQuestionsData).forEach(testId => {
+            if (!allQuestionsData[testId].filter) return;
             const testHistory = history[testId];
             const testTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
             
@@ -399,11 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearHistoryBtn.addEventListener('click', clearHistory);
     backToMenuFromHistoryBtn.addEventListener('click', resetToMenu);
 
-    searchToggleBtn.addEventListener('click', () => {
-        searchOverlay.classList.remove('d-none');
-        document.body.style.overflow = 'hidden';
-        searchInput.focus();
-    });
+    searchToggleBtn.addEventListener('click', () => { searchOverlay.classList.remove('d-none'); document.body.style.overflow = 'hidden'; searchInput.focus(); });
     searchCloseBtn.addEventListener('click', closeSearch);
     searchInput.addEventListener('input', performSearch);
     searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
@@ -413,6 +438,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.open('https://chatgpt.com/g/g-68778387b31081918d876453face6087-tutor-ves', 'TutorVES', 'width=500,height=700');
         });
     }
-    
+
     initializeApp();
 });
