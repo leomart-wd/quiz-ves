@@ -1,9 +1,4 @@
-document.addEventListener('DOMContentLoaded', initializeApp);
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Riferimenti agli elementi del DOM
-    const menuContainer = document.getElementById('menu-container');
-    const quizContainer = document.getElementById('quiz-container');
+const quizContainer = document.getElementById('quiz-container');
     const resultsContainer = document.getElementById('results-container');
     const historyContainer = document.getElementById('history-container');
     const numQuestionsInput = document.getElementById('num-questions');
@@ -442,4 +437,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initializeApp();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  initializeApp();
 });
