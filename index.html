@@ -16,7 +16,7 @@
 <body>
     <div class="container my-5">
         <main id="app-container">
-            <!-- Menù Principale -->
+            <!-- Schermata del Menù Principale -->
             <div id="menu-container">
                 <!-- Sezione Materiale di Studio -->
                 <div class="card shadow-sm mb-5">
@@ -61,7 +61,8 @@
         </main>
     </div>
     
-    <!-- Modale per Domanda Riflessiva -->
+    <!-- ===== SEZIONE DI SERVIZIO ===== -->
+    <!-- Finestra Modale per le Domande Riflessive -->
     <div class="modal fade" id="reflection-modal" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -81,15 +82,21 @@
     
     <!-- Overlay Ricerca -->
     <div id="search-overlay" class="d-none">
-        <!-- ... contenuto dell'overlay ... -->
+        <button id="search-close-btn" class="btn-close btn-close-white"></button>
+        <div class="search-modal">
+            <h2 class="text-white mb-3">Ricerca Istantanea</h2>
+            <div class="input-group input-group-lg mb-3">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="search-input" class="form-control" placeholder="Scrivi una parola o una domanda..." autocomplete="off">
+            </div>
+            <div id="search-results-container"></div>
+        </div>
     </div>
 
     <!-- Librerie JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="jspdf.umd.min.js"></script> <!-- LIBRERIA PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
     <script src="script.js"></script>
 </body>
 </html>
