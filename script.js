@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let chartInstances = {};
     let reflectionModal;
 
-    // Funzione per mescolare un array
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -61,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildSearchIndex() {
         searchIndex = [];
         Object.keys(allQuestionsData).forEach(testId => {
-            if (!allQuestionsData[testId]) return;
+            if (!allQuestionsData[testId] || allQuestionsData[testId].length === 0) return;
             const testTitleButton = document.querySelector(`[data-testid="${testId}"]`);
             const testTitle = testTitleButton ? testTitleButton.textContent : 'Test Generico';
             
@@ -88,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTestId = testId;
         const questionPool = allQuestionsData[testId].filter(q => q.type !== 'header');
         
-        // CORREZIONE: La logica ora include esplicitamente test5 tra i casuali
+        // CORREZIONE CHIAVE: Aggiunto test5 alla lista dei test casuali
         const isRandomTest = ['test1', 'test2', 'test5'].includes(testId);
 
         if (isRandomTest) {
@@ -101,7 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const shuffledQuestions = shuffleArray([...questionPool]);
             currentTestQuestions = shuffledQuestions.slice(0, numQuestionsToSelect);
         } else {
-            currentTestQuestions = questionPool; // Test fissi (test3 e test4)
+            // Test fissi (test3 e test4)
+            currentTestQuestions = questionPool; 
         }
         
         const testTitleText = document.querySelector(`[data-testid="${testId}"]`).textContent;
@@ -178,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         quizForm.innerHTML = formHTML;
 
-        // Aggiunge l'evento per i pulsanti di aiuto
         quizForm.querySelectorAll('.help-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const prompt = e.currentTarget.dataset.reflection;
@@ -186,7 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 reflectionModal.show();
             });
         });
-
         updateProgress();
     }
     
@@ -235,7 +233,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         keywordsHTML += `<div class="form-check keyword-checklist-item"><input class="form-check-input" type="checkbox" id="kw-${index}-${kw_index}"><label class="form-check-label" for="kw-${index}-${kw_index}"><span>${kw.keyword}</span><i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" data-bs-placement="top" title="${kw.explanation}"></i></label></div>`;
                     });
                 }
-
                 resultsHTML += `<div class="result-item open"><p class="result-question">${questionCounter}. ${q.question}</p><div class="row"><div class="col-md-6 mb-3 mb-md-0"><strong>La tua risposta:</strong><div class="user-answer-box">${userAnswer.replace(/</g, "<").replace(/>/g, ">") || "<em>Nessuna risposta</em>"}</div></div><div class="col-md-6"><strong>Concetti Chiave (autovalutazione):</strong><div class="keyword-summary">${q.model_answer ? q.model_answer.summary : ''}</div><div id="checklist-${index}">${keywordsHTML}</div><div class="progress mt-2" style="height: 10px;"><div class="progress-bar bg-success" id="progress-open-${index}" role="progressbar" style="width: 0%"></div></div></div></div></div>`;
             }
         });
@@ -412,15 +409,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.open('https://chatgpt.com/g/g-68778387b31081918d876453face6087-tutor-ves', 'TutorVES', 'width=500,height=700');
         });
     }
-    
-    // Event listener per i pulsanti di aiuto (delegato al contenitore del quiz)
-    quizContainer.addEventListener('click', function(event) {
-        const target = event.target.closest('.help-btn');
-        if (target) {
-            const prompt = target.dataset.reflection;
-            document.getElementById('reflection-modal-body').textContent = prompt;
-        }
-    });
 
     initializeApp();
 });
