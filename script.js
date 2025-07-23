@@ -317,3 +317,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fetchQuestions();
 });
+
+
+/****   ****/
+// ... In cima allo script, dopo le altre dichiarazioni ...
+let reflectionModal;
+
+// ... All'interno della funzione renderQuestions(), nel loop ...
+// Aggiungi questa logica per creare il pulsante di aiuto
+let helpButtonHTML = '';
+if (q.reflection_prompt) {
+    helpButtonHTML = `
+        <button type="button" class="help-btn" data-reflection="${q.reflection_prompt}">
+            <img src="brain-help.jpg" alt="Aiuto">
+        </button>`;
+}
+formHTML += `<div class="question-block" id="q-block-${index}">
+                <p class="question-text">${questionCounter}. ${q.question} ${helpButtonHTML}</p>
+                <div class="options-container">`;
+// ... resto della funzione ...
+
+// ... All'interno di renderQuizUI(), dopo aver renderizzato le domande ...
+// Aggiungi questo per inizializzare la modale e i suoi trigger
+reflectionModal = new bootstrap.Modal(document.getElementById('reflection-modal'));
+quizContainer.querySelectorAll('.help-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const prompt = e.currentTarget.dataset.reflection;
+        document.getElementById('reflection-modal-body').textContent = prompt;
+        reflectionModal.show();
+    });
+});
+
+// Aggiungi "test5" alla logica dei test casuali in startQuiz()
+if (testId === 'test1' || testId === 'test2' || testId === 'test5') {
+    // ... logica per test casuali ...
+} else {
+    currentTestQuestions = questionPool; 
+}
