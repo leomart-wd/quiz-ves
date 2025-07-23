@@ -164,10 +164,12 @@ h1.card-title { font-size: 2.2rem; }
     flex-shrink: 0;
 }
 .help-btn img {
-    width: 100%;
-    height: 100%;
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
     border-radius: 50%;
-    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid #ccc;
+    cursor: pointer;
 }
 .help-btn:hover img {
     transform: scale(1.1);
