@@ -319,38 +319,61 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-/****   ****/
-// ... In cima allo script, dopo le altre dichiarazioni ...
-let reflectionModal;
+function showHelpPopup(text) {
+  const popup = document.createElement('div');
+  popup.className = 'help-popup';
+  popup.textContent = text;
+  document.body.appendChild(popup);
 
-// ... All'interno della funzione renderQuestions(), nel loop ...
-// Aggiungi questa logica per creare il pulsante di aiuto
-let helpButtonHTML = '';
-if (q.reflection_prompt) {
-    helpButtonHTML = `
-        <button type="button" class="help-btn" data-reflection="${q.reflection_prompt}">
-            <img src="brain-help.jpg" alt="Aiuto">
-        </button>`;
+  const removePopup = () => {
+    popup.style.opacity = '0';
+    setTimeout(() => popup.remove(), 1000);
+    document.removeEventListener('click', removePopup);
+    document.removeEventListener('scroll', removePopup);
+  };
+
+  document.addEventListener('click', removePopup);
+  document.addEventListener('scroll', removePopup);
+  setTimeout(removePopup, 10000);
 }
-formHTML += `<div class="question-block" id="q-block-${index}">
-                <p class="question-text">${questionCounter}. ${q.question} ${helpButtonHTML}</p>
-                <div class="options-container">`;
-// ... resto della funzione ...
 
-// ... All'interno di renderQuizUI(), dopo aver renderizzato le domande ...
-// Aggiungi questo per inizializzare la modale e i suoi trigger
-reflectionModal = new bootstrap.Modal(document.getElementById('reflection-modal'));
-quizContainer.querySelectorAll('.help-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        const prompt = e.currentTarget.dataset.reflection;
-        document.getElementById('reflection-modal-body').textContent = prompt;
-        reflectionModal.show();
-    });
+function renderQuestion(q, idx) {
+  let html = `<div class="question-block"><p><strong>${idx + 1}.</strong> ${q.domanda}`;
+  if (q.riflessione) {
+    html += ` <img src="brain-help.jpg" class="brain-help" onclick="showHelpPopup('${q.riflessione.replace(/'/g, "\'")}')">`;
+  }
+  html += '</p>';
+  if (q.tipo === 'vero_falso') {
+    html += '<div class="form-check"><input class="form-check-input" type="radio" name="q'+idx+'" value="Vero"> Vero</div>';
+    html += '<div class="form-check"><input class="form-check-input" type="radio" name="q'+idx+'" value="Falso"> Falso</div>';
+  } else if (q.tipo === 'scelta_multipla') {
+    for (const [k, v] of Object.entries(q.opzioni)) {
+      html += '<div class="form-check"><input class="form-check-input" type="radio" name="q'+idx+'" value="'+k+'"> '+v+'</div>';
+    }
+  } else if (q.tipo === 'aperta') {
+    html += '<textarea class="form-control" name="q'+idx+'" rows="2" placeholder="Scrivi la tua risposta..."></textarea>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function exportToPDF() {
+  const el = document.querySelector('#results-container');
+  const opt = {
+    margin:       0.5,
+    filename:     'risultati_test.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+  };
+  html2pdf().from(el).set(opt).save();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  const btn = document.createElement('button');
+  btn.textContent = "Scarica PDF";
+  btn.className = "btn btn-outline-secondary ml-2";
+  btn.onclick = exportToPDF;
+  const menuBtn = document.querySelector('#result-menu-btn');
+  if (menuBtn) menuBtn.insertAdjacentElement('afterend', btn);
 });
-
-// Aggiungi "test5" alla logica dei test casuali in startQuiz()
-if (testId === 'test1' || testId === 'test2' || testId === 'test5') {
-    // ... logica per test casuali ...
-} else {
-    currentTestQuestions = questionPool; 
-}
