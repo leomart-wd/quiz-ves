@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     // Riferimenti agli elementi del DOM
     const menuContainer = document.getElementById('menu-container');
@@ -6,33 +5,92 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsContainer = document.getElementById('results-container');
     const historyContainer = document.getElementById('history-container');
     const numQuestionsInput = document.getElementById('num-questions');
+    
+    // Pulsanti e contenitori statici
     const viewHistoryBtn = document.getElementById('view-history-btn');
     const backToMenuFromHistoryBtn = document.getElementById('back-to-menu-from-history-btn');
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     const historyContent = document.getElementById('history-content');
+    
+    // Elementi per la ricerca
     const searchToggleBtn = document.getElementById('search-toggle-btn');
     const searchOverlay = document.getElementById('search-overlay');
     const searchCloseBtn = document.getElementById('search-close-btn');
     const searchInput = document.getElementById('search-input');
     const searchResultsContainer = document.getElementById('search-results-container');
+
+    // Elementi del Tutor
     const tutorButton = document.getElementById('tutor-button');
-    let reflectionModal;
 
     let allQuestionsData = {};
     let searchIndex = [];
     let currentTestId = '';
     let currentTestQuestions = [];
     let chartInstances = {};
+    let reflectionModal;
 
-    function shuffleArray(array) { /* ... (codice invariato) ... */ }
-    async function initializeApp() { /* ... (codice invariato con inizializzazione modale) ... */ }
-    function buildSearchIndex() { /* ... (codice invariato) ... */ }
+    // Funzione per mescolare un array
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    async function initializeApp() {
+        try {
+            const response = await fetch('quiz.json');
+            if (!response.ok) throw new Error('Network response was not ok');
+            allQuestionsData = await response.json();
+            
+            buildSearchIndex(); 
+
+            document.querySelectorAll('.menu-btn').forEach(button => {
+                button.addEventListener('click', () => startQuiz(button.dataset.testid));
+            });
+
+            reflectionModal = new bootstrap.Modal(document.getElementById('reflection-modal'));
+
+        } catch (error) {
+            console.error('Failed to fetch questions:', error);
+            menuContainer.innerHTML = '<h1>Errore</h1><p>Impossibile caricare il test. Riprova più tardi.</p>';
+        }
+    }
+
+    function buildSearchIndex() {
+        searchIndex = [];
+        Object.keys(allQuestionsData).forEach(testId => {
+            if (!allQuestionsData[testId]) return;
+            const testTitleButton = document.querySelector(`[data-testid="${testId}"]`);
+            const testTitle = testTitleButton ? testTitleButton.textContent : 'Test Generico';
+            
+            allQuestionsData[testId].forEach(q => {
+                if (q.type !== 'header') {
+                    let answerText = '';
+                    if (q.type === 'open_ended' && q.model_answer) {
+                        answerText = q.model_answer.summary + ' ' + q.model_answer.keywords.map(kw => kw.keyword + ' ' + kw.explanation).join(' ');
+                    } else {
+                        answerText = q.explanation || '';
+                    }
+                    searchIndex.push({
+                        question: q.question,
+                        text_to_search: `${q.question} ${answerText}`.toLowerCase(),
+                        explanation: answerText,
+                        test: testTitle
+                    });
+                }
+            });
+        });
+    }
 
     function startQuiz(testId) {
         currentTestId = testId;
         const questionPool = allQuestionsData[testId].filter(q => q.type !== 'header');
         
-        const isRandomTest = (testId === 'test1' || testId === 'test2' || testId === 'test5');
+        // CORREZIONE: La logica ora include esplicitamente test5 tra i casuali
+        const isRandomTest = ['test1', 'test2', 'test5'].includes(testId);
+
         if (isRandomTest) {
             const numQuestionsToSelect = parseInt(numQuestionsInput.value, 10);
             const maxQuestions = questionPool.length;
@@ -43,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const shuffledQuestions = shuffleArray([...questionPool]);
             currentTestQuestions = shuffledQuestions.slice(0, numQuestionsToSelect);
         } else {
-            currentTestQuestions = questionPool; 
+            currentTestQuestions = questionPool; // Test fissi (test3 e test4)
         }
         
         const testTitleText = document.querySelector(`[data-testid="${testId}"]`).textContent;
@@ -55,7 +113,32 @@ document.addEventListener('DOMContentLoaded', () => {
         quizContainer.classList.remove('d-none');
     }
 
-    function renderQuizUI(title) { /* ... (codice invariato) ... */ }
+    function renderQuizUI(title) {
+        const quizHeaderHTML = `
+            <div class="card-body p-md-5 p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="quiz-title-text">${title}</h2>
+                    <button id="back-to-menu-during-quiz-btn" class="btn btn-sm btn-outline-secondary">Torna al Menù</button>
+                </div>
+                <div id="progress-container" class="mb-4">
+                    <p id="progress-text" class="mb-1 text-center"></p>
+                    <div class="progress" style="height: 10px;">
+                        <div id="progress-bar-inner" class="progress-bar" role="progressbar"></div>
+                    </div>
+                </div>
+                <form id="quiz-form"></form>
+                <div class="d-grid mt-4">
+                    <button id="submit-btn" class="btn btn-lg btn-warning">Verifica le Risposte</button>
+                </div>
+            </div>`;
+            
+        quizContainer.innerHTML = quizHeaderHTML;
+        renderQuestions();
+        
+        quizContainer.querySelector('#back-to-menu-during-quiz-btn').addEventListener('click', handleBackToMenuDuringQuiz);
+        quizContainer.querySelector('#submit-btn').addEventListener('click', handleSubmit);
+        quizContainer.querySelector('#quiz-form').addEventListener('input', updateProgress);
+    }
     
     function renderQuestions() {
         const quizForm = quizContainer.querySelector('#quiz-form');
@@ -94,10 +177,38 @@ document.addEventListener('DOMContentLoaded', () => {
             formHTML += '</div></div>';
         });
         quizForm.innerHTML = formHTML;
+
+        // Aggiunge l'evento per i pulsanti di aiuto
+        quizForm.querySelectorAll('.help-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const prompt = e.currentTarget.dataset.reflection;
+                document.getElementById('reflection-modal-body').textContent = prompt;
+                reflectionModal.show();
+            });
+        });
+
         updateProgress();
     }
     
-    function updateProgress() { /* ... (codice invariato) ... */ }
+    function updateProgress() {
+        const totalQuestions = currentTestQuestions.length;
+        const quizForm = quizContainer.querySelector('#quiz-form');
+        if (!quizForm) return;
+
+        const inputs = quizForm.querySelectorAll('input[type=text], input[type=radio], textarea');
+        const answeredNames = new Set();
+        
+        inputs.forEach(input => {
+            if ((input.type === 'radio' && input.checked) || (input.type !== 'radio' && input.value.trim() !== '')) {
+                answeredNames.add(input.name);
+            }
+        });
+        
+        const answeredCount = answeredNames.size;
+        quizContainer.querySelector('#progress-text').textContent = `Domande risposte: ${answeredCount} di ${totalQuestions}`;
+        const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+        quizContainer.querySelector('#progress-bar-inner').style.width = `${progressPercentage}%`;
+    }
 
     function handleSubmit(e) {
         e.preventDefault();
@@ -134,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const scoreDisplay = gradableCount > 0 ? `${score} / ${gradableCount}` : "Test di Autovalutazione";
-        const resultsPageHTML = `<div class="card-body p-md-5 p-4"><h2 class="text-center">${quizContainer.querySelector('h2').textContent} - Risultati</h2><p class="text-center display-5 fw-bold my-4">${scoreDisplay}</p><div class="mt-4">${resultsHTML}</div><div class="d-grid mt-5"><button id="back-to-menu-from-results-btn" class="btn btn-lg btn-secondary">Torna al Menù</button></div></div>`;
+        const resultsPageHTML = `<div class="card-body p-md-5 p-4"><h2 class="text-center">${quizContainer.querySelector('.quiz-title-text').textContent} - Risultati</h2><p class="text-center display-5 fw-bold my-4">${scoreDisplay}</p><div class="mt-4">${resultsHTML}</div><div class="d-grid mt-5"><button id="back-to-menu-from-results-btn" class="btn btn-lg btn-secondary">Torna al Menù</button></div></div>`;
         
         resultsContainer.innerHTML = resultsPageHTML;
         resultsContainer.querySelector('#back-to-menu-from-results-btn').addEventListener('click', resetToMenu);
@@ -158,12 +269,158 @@ document.addEventListener('DOMContentLoaded', () => {
         quizContainer.classList.add('d-none');
         resultsContainer.classList.remove('d-none');
     }
+    
+    function saveResult(testId, score, total) {
+        const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
+        if (!history[testId]) history[testId] = [];
+        history[testId].push({ score, total, percentage: total > 0 ? Math.round((score / total) * 100) : 0, date: new Date().toISOString() });
+        localStorage.setItem('quizHistory', JSON.stringify(history));
+    }
 
-    // Le altre funzioni (saveResult, viewHistory, renderChart, clearHistory, resetToMenu, handleBackToMenuDuringQuiz) rimangono invariate.
-    // ...
+    function viewHistory() {
+        menuContainer.classList.add('d-none');
+        historyContainer.classList.remove('d-none');
+        
+        const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
+        historyContent.innerHTML = '';
+
+        if (Object.keys(history).length === 0) {
+            historyContent.innerHTML = '<p class="text-center text-muted">Nessun risultato salvato.</p>';
+            return;
+        }
+
+        Object.keys(allQuestionsData).forEach(testId => {
+            const testHistory = history[testId];
+            const testTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
+            
+            let testHTML = `<div class="mb-5"><h3>${testTitle}</h3>`;
+            if (!testHistory || testHistory.length === 0) {
+                testHTML += '<p class="text-muted">Nessun tentativo registrato per questo test.</p>';
+            } else {
+                const canvasId = `chart-${testId}`;
+                testHTML += `<div class="history-chart-container"><canvas id="${canvasId}"></canvas></div>`;
+                testHTML += `<table class="table table-striped table-hover history-table"><thead><tr><th>Data</th><th>Punteggio</th><th>Percentuale</th></tr></thead><tbody>`;
+                [...testHistory].reverse().slice(0, 10).forEach(result => {
+                    const date = new Date(result.date);
+                    testHTML += `<tr><td class="history-date">${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT')}</td><td><strong>${result.score} / ${result.total}</strong></td><td>${result.percentage}%</td></tr>`;
+                });
+                testHTML += '</tbody></table>';
+            }
+            testHTML += '</div><hr>';
+            historyContent.innerHTML += testHTML;
+        });
+
+        Object.keys(history).forEach(testId => {
+            if (history[testId] && history[testId].length > 0) {
+                renderChart(testId, history[testId]);
+            }
+        });
+    }
+
+    function renderChart(testId, data) {
+        const canvas = document.getElementById(`chart-${testId}`);
+        if (!canvas) return;
+        if (chartInstances[testId]) chartInstances[testId].destroy();
+
+        const labels = data.map(r => new Date(r.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }));
+        const percentages = data.map(r => r.percentage);
+
+        chartInstances[testId] = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Andamento Punteggio (%)',
+                    data: percentages,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+        });
+    }
+
+    function clearHistory() {
+        if (confirm("Sei sicuro di voler cancellare TUTTO lo storico dei risultati? L'azione è irreversibile.")) {
+            localStorage.removeItem('quizHistory');
+            viewHistory();
+        }
+    }
+
+    function resetToMenu() {
+        quizContainer.classList.add('d-none');
+        resultsContainer.classList.add('d-none');
+        historyContainer.classList.add('d-none');
+        menuContainer.classList.remove('d-none');
+    }
+    
+    function handleBackToMenuDuringQuiz() {
+        if (confirm("Sei sicuro di voler tornare al menù principale? Perderai i progressi di questo test.")) {
+            resetToMenu();
+        }
+    }
+    
+    function performSearch() {
+        const query = searchInput.value.trim().toLowerCase();
+        if (query.length < 3) {
+            searchResultsContainer.innerHTML = '<p class="no-results">Scrivi almeno 3 caratteri per iniziare la ricerca.</p>';
+            return;
+        }
+
+        const results = searchIndex.filter(item => item.text_to_search.includes(query));
+
+        if (results.length === 0) {
+            searchResultsContainer.innerHTML = '<p class="no-results">Nessun risultato trovato.</p>';
+        } else {
+            let resultsHTML = '';
+            results.forEach(res => {
+                const highlightedExplanation = res.explanation.replace(
+                    new RegExp(query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi'),
+                    '<span class="highlight">$&</span>'
+                );
+                resultsHTML += `<div class="search-result-item"><p class="search-result-question">${res.question} <small class="text-muted">(${res.test})</small></p><p class="search-result-answer">${highlightedExplanation}</p></div>`;
+            });
+            searchResultsContainer.innerHTML = resultsHTML;
+        }
+    }
+    
+    function closeSearch() {
+        searchOverlay.classList.add('d-none');
+        document.body.style.overflow = '';
+        searchInput.value = '';
+        searchResultsContainer.innerHTML = '';
+    }
 
     // Event Listeners
-    // ...
+    viewHistoryBtn.addEventListener('click', viewHistory);
+    clearHistoryBtn.addEventListener('click', clearHistory);
+    backToMenuFromHistoryBtn.addEventListener('click', resetToMenu);
+
+    searchToggleBtn.addEventListener('click', () => {
+        searchOverlay.classList.remove('d-none');
+        document.body.style.overflow = 'hidden';
+        searchInput.focus();
+    });
+    searchCloseBtn.addEventListener('click', closeSearch);
+    searchInput.addEventListener('input', performSearch);
+    searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
+
+    if(tutorButton) {
+        tutorButton.addEventListener('click', () => {
+            window.open('https://chatgpt.com/g/g-68778387b31081918d876453face6087-tutor-ves', 'TutorVES', 'width=500,height=700');
+        });
+    }
     
+    // Event listener per i pulsanti di aiuto (delegato al contenitore del quiz)
+    quizContainer.addEventListener('click', function(event) {
+        const target = event.target.closest('.help-btn');
+        if (target) {
+            const prompt = target.dataset.reflection;
+            document.getElementById('reflection-modal-body').textContent = prompt;
+        }
+    });
+
     initializeApp();
 });
