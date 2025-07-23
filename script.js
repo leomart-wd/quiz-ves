@@ -1,22 +1,22 @@
-const quizContainer = document.getElementById('quiz-container');
+document.addEventListener('DOMContentLoaded', () => {
+    // Riferimenti agli elementi del DOM
+    const menuContainer = document.getElementById('menu-container');
+    const quizContainer = document.getElementById('quiz-container');
     const resultsContainer = document.getElementById('results-container');
     const historyContainer = document.getElementById('history-container');
     const numQuestionsInput = document.getElementById('num-questions');
     
-    // Pulsanti e contenitori statici
     const viewHistoryBtn = document.getElementById('view-history-btn');
     const backToMenuFromHistoryBtn = document.getElementById('back-to-menu-from-history-btn');
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     const historyContent = document.getElementById('history-content');
     
-    // Elementi per la ricerca
     const searchToggleBtn = document.getElementById('search-toggle-btn');
     const searchOverlay = document.getElementById('search-overlay');
     const searchCloseBtn = document.getElementById('search-close-btn');
     const searchInput = document.getElementById('search-input');
     const searchResultsContainer = document.getElementById('search-results-container');
 
-    // Elementi del Tutor
     const tutorButton = document.getElementById('tutor-button');
 
     let allQuestionsData = {};
@@ -26,7 +26,6 @@ const quizContainer = document.getElementById('quiz-container');
     let chartInstances = {};
     let reflectionModal;
 
-    // Funzione per mescolare un array
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -146,7 +145,13 @@ const quizContainer = document.getElementById('quiz-container');
         let formHTML = '';
         let questionCounter = 0;
         
-        currentTestQuestions.forEach((q, index) => {
+        const questionsToRender = currentTestQuestions;
+
+        questionsToRender.forEach((q, index) => {
+             if (q.type === 'header') {
+                formHTML += `<h3 class="section-header">${q.text}</h3>`;
+                return;
+            }
             questionCounter++;
             let helpButtonHTML = '';
             if (q.reflection_prompt) {
@@ -244,20 +249,11 @@ const quizContainer = document.getElementById('quiz-container');
         }
 
         const scoreDisplay = gradableCount > 0 ? `${score} / ${gradableCount}` : "Test di Autovalutazione";
-        const resultsPageHTML = `<div class="card-body p-md-5 p-4">
-                <h2 class="text-center">${quizContainer.querySelector('.quiz-title-text').textContent} - Risultati</h2>
-                <p class="text-center display-5 fw-bold my-4">${scoreDisplay}</p>
-                <div class="mt-4">${resultsHTML}</div>
-                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-5">
-                    <button id="back-to-menu-from-results-btn" class="btn btn-lg btn-secondary">Torna al Menù</button>
-                    <button id="save-pdf-btn" class="btn btn-lg btn-danger"><i class="bi bi-file-earmark-pdf-fill"></i> Salva Risultati in PDF</button>
-                </div>
-            </div>`;
+        const resultsPageHTML = `<div class="card-body p-md-5 p-4"><h2 class="text-center">${quizContainer.querySelector('.quiz-title-text').textContent} - Risultati</h2><p class="text-center display-5 fw-bold my-4">${scoreDisplay}</p><div class="mt-4">${resultsHTML}</div><div class="d-grid gap-2 d-md-flex justify-content-md-center mt-5"><button id="back-to-menu-from-results-btn" class="btn btn-lg btn-secondary">Torna al Menù</button><button id="save-pdf-btn" class="btn btn-lg btn-danger"><i class="bi bi-file-earmark-pdf-fill"></i> Salva Risultati in PDF</button></div></div>`;
         
         resultsContainer.innerHTML = resultsPageHTML;
         resultsContainer.querySelector('#back-to-menu-from-results-btn').addEventListener('click', resetToMenu);
         resultsContainer.querySelector('#save-pdf-btn').addEventListener('click', generatePdf);
-
 
         new bootstrap.Tooltip(resultsContainer, { selector: '[data-bs-toggle="tooltip"]', trigger: 'hover', html: true });
 
@@ -278,22 +274,38 @@ const quizContainer = document.getElementById('quiz-container');
         quizContainer.classList.add('d-none');
         resultsContainer.classList.remove('d-none');
     }
-
+    
     function generatePdf() {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const resultsContent = resultsContainer.querySelector('.mt-4').innerText;
+        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
         const testTitle = resultsContainer.querySelector('h2').textContent;
         const score = resultsContainer.querySelector('p.display-5').textContent;
 
-        doc.setFontSize(18);
-        doc.text(testTitle, 105, 20, { align: 'center' });
-        doc.setFontSize(14);
-        doc.text(`Punteggio: ${score}`, 105, 30, { align: 'center' });
-        doc.setFontSize(10);
-        doc.text(resultsContent, 20, 45);
+        let content = `<h1>${testTitle}</h1>\n<h2>Punteggio: ${score}</h2>\n<hr>\n`;
         
-        doc.save(`risultati_${currentTestId}_${new Date().toISOString().slice(0,10)}.pdf`);
+        resultsContainer.querySelectorAll('.result-item').forEach(item => {
+            const question = item.querySelector('.result-question').innerText;
+            const userAnswer = item.querySelector('strong + div, strong + p').innerHTML.replace(/<em>/g, '').replace(/<\/em>/g, '');
+            const explanationElement = item.querySelector('.result-explanation');
+            const explanation = explanationElement ? explanationElement.innerText : '';
+
+            content += `<h3>${question}</h3>\n<p><b>La tua risposta:</b> ${userAnswer}</p>\n`;
+            if (explanation) {
+                content += `<p><b>${explanation}</b></p>\n`;
+            }
+            content += '<hr>\n';
+        });
+        
+        doc.html(content, {
+            callback: function (doc) {
+                doc.save(`risultati_${currentTestId}_${new Date().toISOString().slice(0,10)}.pdf`);
+            },
+            x: 15,
+            y: 15,
+            width: 550,
+            windowWidth: 1000
+        });
     }
 
     function saveResult(testId, score, total) {
@@ -316,7 +328,6 @@ const quizContainer = document.getElementById('quiz-container');
         }
 
         Object.keys(allQuestionsData).forEach(testId => {
-            if (!allQuestionsData[testId].filter) return;
             const testHistory = history[testId];
             const testTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
             
@@ -437,8 +448,4 @@ const quizContainer = document.getElementById('quiz-container');
     }
 
     initializeApp();
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-  initializeApp();
 });
