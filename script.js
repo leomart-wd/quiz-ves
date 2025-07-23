@@ -14,9 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const verifyButton = document.getElementById('verify-button');
   if (verifyButton) verifyButton.addEventListener('click', handleSubmit);
 
-  const clearHistoryBtn = document.getElementById('clear-history-btn');
-  if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', clearHistory);
-
   const backToMenuBtn = document.getElementById('back-to-menu-btn');
   if (backToMenuBtn) backToMenuBtn.addEventListener('click', () => location.reload());
 
@@ -124,10 +121,4 @@ function handleSubmit() {
       <hr>`;
     resultsContainer.appendChild(block);
   });
-
-  document.getElementById('download-pdf-btn').classList.remove('d-none');
-}
-
-function clearHistory() {
-  localStorage.removeItem('quizHistory');
 }
