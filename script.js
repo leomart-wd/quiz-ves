@@ -3,6 +3,12 @@ let userAnswers = [];
 let quizData = {};
 
 document.addEventListener('DOMContentLoaded', () => {
+  fetch('quiz.json')
+    .then(response => response.json())
+    .then(data => {
+      quizData = data;
+    });
+
   const menuButtons = document.querySelectorAll('.menu-btn');
   menuButtons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -12,33 +18,39 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const verifyButton = document.getElementById('verify-button');
-  if (verifyButton) verifyButton.addEventListener('click', handleSubmit);
+  if (verifyButton) {
+    verifyButton.addEventListener('click', handleSubmit);
+  }
 
   const backToMenuBtn = document.getElementById('back-to-menu-btn');
-  if (backToMenuBtn) backToMenuBtn.addEventListener('click', () => location.reload());
-
-  fetch('quiz.json')
-    .then(response => response.json())
-    .then(data => {
-      quizData = data;
-    });
+  if (backToMenuBtn) {
+    backToMenuBtn.addEventListener('click', () => location.reload());
+  }
 });
 
 function startTest(testId) {
   currentTestQuestions = quizData[testId] || [];
   userAnswers = new Array(currentTestQuestions.length).fill(null);
-  document.getElementById('menu-container').classList.add('d-none');
-  document.getElementById('quiz-container').classList.remove('d-none');
-  renderQuiz();
+
+  const menuContainer = document.getElementById('menu-container');
+  const quizContainer = document.getElementById('quiz-container');
+
+  if (menuContainer && quizContainer) {
+    menuContainer.classList.add('d-none');
+    quizContainer.classList.remove('d-none');
+    renderQuiz();
+  }
 }
 
 function renderQuiz() {
   const container = document.getElementById('question-container');
+  if (!container) return;
   container.innerHTML = '';
   currentTestQuestions.forEach((q, i) => {
     const qDiv = document.createElement('div');
     qDiv.classList.add('mb-4');
     qDiv.innerHTML = `<div class="fw-bold mb-2">${i + 1}. ${q.domanda}</div>`;
+
     if (q.type === 'true_false' || q.type === 'multiple_choice') {
       q.risposte.forEach((opt, idx) => {
         qDiv.innerHTML += `
@@ -50,13 +62,14 @@ function renderQuiz() {
     } else if (q.type === 'open_ended') {
       qDiv.innerHTML += `<textarea class="form-control" data-qidx="${i}" rows="3"></textarea>`;
     }
+
     if (q.riflessiva) {
       qDiv.innerHTML += `
         <button type="button" class="help-btn btn btn-light border rounded-circle p-2" onclick="showReflective('${q.riflessiva}', this)">
           <img src="brain-help.jpg" alt="help" style="width:70px;height:70px;border-radius:50%;">
         </button>`;
     }
-    qDiv.id = `result-q-${i}`;
+
     container.appendChild(qDiv);
   });
 }
@@ -85,6 +98,11 @@ function showReflective(msg, el) {
 
 function handleSubmit() {
   const container = document.getElementById('question-container');
+  const resultsContainer = document.getElementById('results-container');
+  const quizContainer = document.getElementById('quiz-container');
+
+  if (!container || !resultsContainer || !quizContainer) return;
+
   const inputs = container.querySelectorAll('input[type=radio]:checked, textarea');
   inputs.forEach(input => {
     const qIndex = parseInt(input.name?.replace('q', '') || input.dataset.qidx);
@@ -95,8 +113,7 @@ function handleSubmit() {
     }
   });
 
-  document.getElementById('quiz-container').classList.add('d-none');
-  const resultsContainer = document.getElementById('results-container');
+  quizContainer.classList.add('d-none');
   resultsContainer.classList.remove('d-none');
   resultsContainer.innerHTML = '<h3>Risultati</h3>';
 
