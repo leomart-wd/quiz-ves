@@ -1,3 +1,5 @@
+document.addEventListener('DOMContentLoaded', initializeApp);
+
 document.addEventListener('DOMContentLoaded', () => {
     // Riferimenti agli elementi del DOM
     const menuContainer = document.getElementById('menu-container');
