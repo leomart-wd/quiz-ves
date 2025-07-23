@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Riferimenti agli elementi del DOM
+    // Riferimenti agli elementi del DOM (quelli sempre presenti)
     const menuContainer = document.getElementById('menu-container');
     const quizContainer = document.getElementById('quiz-container');
     const resultsContainer = document.getElementById('results-container');
@@ -7,18 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const numQuestionsInput = document.getElementById('num-questions');
     
     const viewHistoryBtn = document.getElementById('view-history-btn');
-    const backToMenuFromHistoryBtn = document.getElementById('back-to-menu-from-history-btn');
-    const clearHistoryBtn = document.getElementById('clear-history-btn');
-    const historyContent = document.getElementById('history-content');
-    
     const searchToggleBtn = document.getElementById('search-toggle-btn');
-    const searchOverlay = document.getElementById('search-overlay');
-    const searchCloseBtn = document.getElementById('search-close-btn');
-    const searchInput = document.getElementById('search-input');
-    const searchResultsContainer = document.getElementById('search-results-container');
-
     const tutorButton = document.getElementById('tutor-button');
 
+    // Variabili di stato
     let allQuestionsData = {};
     let searchIndex = [];
     let currentTestId = '';
@@ -26,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let chartInstances = {};
     let reflectionModal;
 
+    // Funzione per mescolare un array
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -34,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return array;
     }
 
+    // Inizializza l'applicazione
     async function initializeApp() {
         try {
             const response = await fetch('quiz.json');
@@ -145,13 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let formHTML = '';
         let questionCounter = 0;
         
-        const questionsToRender = currentTestQuestions;
-
-        questionsToRender.forEach((q, index) => {
-             if (q.type === 'header') {
-                formHTML += `<h3 class="section-header">${q.text}</h3>`;
-                return;
-            }
+        currentTestQuestions.forEach((q, index) => {
             questionCounter++;
             let helpButtonHTML = '';
             if (q.reflection_prompt) {
@@ -278,32 +266,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function generatePdf() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-
+        
         const testTitle = resultsContainer.querySelector('h2').textContent;
         const score = resultsContainer.querySelector('p.display-5').textContent;
+        const resultsItems = resultsContainer.querySelectorAll('.result-item');
+        let htmlContent = `<h1>${testTitle}</h1><h2>Punteggio: ${score}</h2><hr>`;
 
-        let content = `<h1>${testTitle}</h1>\n<h2>Punteggio: ${score}</h2>\n<hr>\n`;
-        
-        resultsContainer.querySelectorAll('.result-item').forEach(item => {
-            const question = item.querySelector('.result-question').innerText;
-            const userAnswer = item.querySelector('strong + div, strong + p').innerHTML.replace(/<em>/g, '').replace(/<\/em>/g, '');
-            const explanationElement = item.querySelector('.result-explanation');
-            const explanation = explanationElement ? explanationElement.innerText : '';
-
-            content += `<h3>${question}</h3>\n<p><b>La tua risposta:</b> ${userAnswer}</p>\n`;
-            if (explanation) {
-                content += `<p><b>${explanation}</b></p>\n`;
-            }
-            content += '<hr>\n';
+        resultsItems.forEach(item => {
+            const question = item.querySelector('.result-question').innerHTML;
+            const userAnswerNode = item.querySelector('.user-answer-box') || item.querySelector('p > strong').nextSibling;
+            const userAnswer = userAnswerNode ? userAnswerNode.textContent.trim() : 'Nessuna risposta';
+            const explanationNode = item.querySelector('.result-explanation');
+            const explanation = explanationNode ? explanationNode.innerText : '';
+            htmlContent += `<div><h3>${question}</h3><p><b>La tua risposta:</b> ${userAnswer}</p><p>${explanation}</p></div><hr>`;
         });
-        
-        doc.html(content, {
+
+        doc.html(htmlContent, {
             callback: function (doc) {
                 doc.save(`risultati_${currentTestId}_${new Date().toISOString().slice(0,10)}.pdf`);
             },
-            x: 15,
-            y: 15,
-            width: 550,
+            x: 20,
+            y: 20,
+            width: 555,
             windowWidth: 1000
         });
     }
@@ -328,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         Object.keys(allQuestionsData).forEach(testId => {
+            if (!allQuestionsData[testId].filter) return;
             const testHistory = history[testId];
             const testTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
             
@@ -432,20 +417,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Event Listeners
-    viewHistoryBtn.addEventListener('click', viewHistory);
-    clearHistoryBtn.addEventListener('click', clearHistory);
-    backToMenuFromHistoryBtn.addEventListener('click', resetToMenu);
-
-    searchToggleBtn.addEventListener('click', () => { searchOverlay.classList.remove('d-none'); document.body.style.overflow = 'hidden'; searchInput.focus(); });
-    searchCloseBtn.addEventListener('click', closeSearch);
-    searchInput.addEventListener('input', performSearch);
-    searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
-
-    if(tutorButton) {
-        tutorButton.addEventListener('click', () => {
-            window.open('https://chatgpt.com/g/g-68778387b31081918d876453face6087-tutor-ves', 'TutorVES', 'width=500,height=700');
-        });
-    }
+    if (viewHistoryBtn) viewHistoryBtn.addEventListener('click', viewHistory);
+    if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', clearHistory);
+    if (backToMenuFromHistoryBtn) backToMenuFromHistoryBtn.addEventListener('click', resetToMenu);
+    if (searchToggleBtn) searchToggleBtn.addEventListener('click', () => { searchOverlay.classList.remove('d-none'); document.body.style.overflow = 'hidden'; searchInput.focus(); });
+    if (searchCloseBtn) searchCloseBtn.addEventListener('click', closeSearch);
+    if (searchInput) searchInput.addEventListener('input', performSearch);
+    if (searchOverlay) searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
+    if (tutorButton) tutorButton.addEventListener('click', () => { window.open('https://chatgpt.com/g/g-68778387b31081918d876453face6087-tutor-ves', 'TutorVES', 'width=500,height=700'); });
 
     initializeApp();
 });
