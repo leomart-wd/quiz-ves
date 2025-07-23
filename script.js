@@ -5,8 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsContainer = document.getElementById('results-container');
     const historyContainer = document.getElementById('history-container');
     const numQuestionsInput = document.getElementById('num-questions');
-    
+
     const viewHistoryBtn = document.getElementById('view-history-btn');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
     const searchToggleBtn = document.getElementById('search-toggle-btn');
     const searchOverlay = document.getElementById('search-overlay');
     const searchCloseBtn = document.getElementById('search-close-btn');
@@ -34,15 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('quiz.json');
             if (!response.ok) throw new Error('Network response was not ok');
             allQuestionsData = await response.json();
-            
-            buildSearchIndex(); 
+
+            buildSearchIndex();
 
             document.querySelectorAll('.menu-btn').forEach(button => {
                 button.addEventListener('click', () => startQuiz(button.dataset.testid));
             });
 
             reflectionModal = new bootstrap.Modal(document.getElementById('reflection-modal'));
-
         } catch (error) {
             console.error('Failed to fetch questions:', error);
             menuContainer.innerHTML = '<h1>Errore</h1><p>Impossibile caricare il test. Riprova più tardi.</p>';
@@ -50,13 +50,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buildSearchIndex() {
-        // ... (Logica invariata)
+        // TODO: Implement search index build logic if needed
     }
 
     function startQuiz(testId) {
         currentTestId = testId;
         const questionPool = allQuestionsData[testId] ? allQuestionsData[testId].filter(q => q.type !== 'header') : [];
-        
+
         if (questionPool.length === 0 && testId) {
             alert(`Attenzione: non ci sono domande disponibili per il test '${testId}'. Controlla il file quiz.json.`);
             return;
@@ -74,10 +74,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const shuffledQuestions = shuffleArray([...questionPool]);
             currentTestQuestions = shuffledQuestions.slice(0, numQuestionsToSelect);
         } else {
-            currentTestQuestions = questionPool; 
+            currentTestQuestions = questionPool;
         }
-        
-        const testTitleText = document.querySelector(`[data-testid="${testId}"]`).textContent;
+
+        // Defensive: handle testTitleText if element missing
+        const testTitleElem = document.querySelector(`[data-testid="${testId}"]`);
+        const testTitleText = testTitleElem ? testTitleElem.textContent : '';
+
         renderQuizUI(testTitleText);
 
         menuContainer.classList.add('d-none');
@@ -87,55 +90,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderQuizUI(title) {
-        // ... (Logica invariata)
+        // TODO: Implement render logic
     }
-    
+
     function renderQuestions() {
-        // ... (Logica invariata)
+        // TODO: Implement questions rendering
     }
-    
+
     function updateProgress() {
-        // ... (Logica invariata)
+        // TODO: Implement progress update
     }
 
     function handleSubmit(e) {
-        // ... (Logica invariata)
+        // TODO: Implement submit handler
     }
-    
+
     function generatePdf() {
-        // ... (Logica invariata)
+        // TODO: Implement PDF generation
     }
 
     function saveResult(testId, score, total) {
-        // ... (Logica invariata)
+        // TODO: Implement saving result
     }
 
     function viewHistory() {
-        // ... (Logica invariata)
+        // TODO: Implement history view
     }
 
     function renderChart(testId, data) {
-        // ... (Logica invariata)
+        // TODO: Implement chart rendering
     }
 
     function clearHistory() {
-        // ... (Logica invariata)
+        // TODO: Implement history clear logic
     }
 
     function resetToMenu() {
-        // ... (Logica invariata)
+        // TODO: Implement reset logic
     }
-    
+
     function handleBackToMenuDuringQuiz() {
-        // ... (Logica invariata)
+        // TODO: Implement back to menu logic during quiz
     }
-    
+
     function performSearch() {
-        // ... (Logica invariata)
+        // TODO: Implement search logic
     }
-    
+
     function closeSearch() {
-        // ... (Logica invariata)
+        if (searchOverlay) searchOverlay.classList.add('d-none');
+        document.body.style.overflow = '';
+        if (searchInput) searchInput.value = '';
+        if (searchResultsContainer) searchResultsContainer.innerHTML = '';
     }
 
     // Event Listeners
@@ -144,16 +150,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (backBtnHistory) backBtnHistory.addEventListener('click', resetToMenu);
     if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', clearHistory);
 
-    if (searchToggleBtn) searchToggleBtn.addEventListener('click', () => { searchOverlay.classList.remove('d-none'); document.body.style.overflow = 'hidden'; searchInput.focus(); });
+    if (searchToggleBtn) searchToggleBtn.addEventListener('click', () => {
+        if (searchOverlay) searchOverlay.classList.remove('d-none');
+        document.body.style.overflow = 'hidden';
+        if (searchInput) searchInput.focus();
+    });
     if (searchCloseBtn) searchCloseBtn.addEventListener('click', closeSearch);
     if (searchInput) searchInput.addEventListener('input', performSearch);
-    if (searchOverlay) searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
+    if (searchOverlay) searchOverlay.addEventListener('click', (e) => {
+        if (e.target === searchOverlay) closeSearch();
+    });
 
-    if(tutorButton) {
+    if (tutorButton) {
         tutorButton.addEventListener('click', () => {
             window.open('https://chatgpt.com/g/g-68778387b31081918d876453face6087-tutor-ves', 'TutorVES', 'width=500,height=700');
         });
     }
-    
+
     initializeApp();
 });
