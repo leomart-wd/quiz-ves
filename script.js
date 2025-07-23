@@ -67,10 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
             allQuestionsData[testId].forEach(q => {
                 if (q.type !== 'header') {
                     let answerText = '';
-                    if (q.type === 'open_ended' && q.model_answer) {
+                    if (q.type === 'open_ended' && q.model_answer && typeof q.model_answer === 'object') {
                         answerText = q.model_answer.summary + ' ' + q.model_answer.keywords.map(kw => kw.keyword + ' ' + kw.explanation).join(' ');
                     } else {
-                        answerText = q.explanation || '';
+                        answerText = q.explanation || q.model_answer || '';
                     }
                     searchIndex.push({
                         question: q.question,
@@ -85,22 +85,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startQuiz(testId) {
         currentTestId = testId;
-        const questionPool = allQuestionsData[testId].filter(q => q.type !== 'header');
+        const questionPool = allQuestionsData[testId] ? allQuestionsData[testId].filter(q => q.type !== 'header') : [];
         
-        // CORREZIONE CHIAVE: Aggiunto test5 alla lista dei test casuali
+        if (questionPool.length === 0) {
+            alert(`Attenzione: non ci sono domande disponibili per il test '${testId}'.`);
+            return;
+        }
+
         const isRandomTest = ['test1', 'test2', 'test5'].includes(testId);
 
         if (isRandomTest) {
             const numQuestionsToSelect = parseInt(numQuestionsInput.value, 10);
             const maxQuestions = questionPool.length;
-            if (numQuestionsToSelect > maxQuestions || numQuestionsToSelect < 5) {
-                alert(`Per favore, scegli un numero di domande tra 5 e ${maxQuestions}.`);
+            if (numQuestionsToSelect > maxQuestions || numQuestionsToSelect < 1) {
+                alert(`Per favore, scegli un numero di domande tra 1 e ${maxQuestions}.`);
                 return;
             }
             const shuffledQuestions = shuffleArray([...questionPool]);
             currentTestQuestions = shuffledQuestions.slice(0, numQuestionsToSelect);
         } else {
-            // Test fissi (test3 e test4)
             currentTestQuestions = questionPool; 
         }
         
@@ -180,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         quizForm.querySelectorAll('.help-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                e.preventDefault(); // Impedisce il submit del form
                 const prompt = e.currentTarget.dataset.reflection;
                 document.getElementById('reflection-modal-body').textContent = prompt;
                 reflectionModal.show();
@@ -221,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const userAnswer = inputElement ? inputElement.value.trim() : "";
 
             if (q.type !== 'open_ended') {
-                const isCorrect = userAnswer.toLowerCase() === q.answer.toString().toLowerCase();
+                const isCorrect = userAnswer.toLowerCase() === (q.answer || '').toString().toLowerCase();
                 let resultClass = isCorrect ? 'correct' : 'incorrect';
                 if (isCorrect) score++;
                 
@@ -247,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer.innerHTML = resultsPageHTML;
         resultsContainer.querySelector('#back-to-menu-from-results-btn').addEventListener('click', resetToMenu);
 
-        new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]', trigger: 'hover', html: true });
+        new bootstrap.Tooltip(resultsContainer, { selector: '[data-bs-toggle="tooltip"]', trigger: 'hover', html: true });
 
         currentTestQuestions.forEach((q, index) => {
             if (q.type === 'open_ended') {
@@ -409,6 +413,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.open('https://chatgpt.com/g/g-68778387b31081918d876453face6087-tutor-ves', 'TutorVES', 'width=500,height=700');
         });
     }
-
+    
     initializeApp();
 });
