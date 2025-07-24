@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const backToMenuFromHistoryBtn = document.getElementById('back-to-menu-from-history-btn');
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     const historyContent = document.getElementById('history-content');
+    const homeButton = document.getElementById('home-button');
     
     // Elementi per la ricerca
     const searchToggleBtn = document.getElementById('search-toggle-btn');
@@ -51,6 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             reflectionModal = new bootstrap.Modal(document.getElementById('reflection-modal'));
+
+            // Add home button event listener
+            if (homeButton) {
+                homeButton.addEventListener('click', resetToMenu);
+            }
 
         } catch (error) {
             console.error('Failed to fetch questions:', error);
@@ -120,9 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderQuizUI(title) {
         const quizHeaderHTML = `
             <div class="card-body p-md-5 p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="mb-4">
                     <h2 class="quiz-title-text">${title}</h2>
-                    <button id="back-to-menu-during-quiz-btn" class="btn btn-sm btn-outline-secondary">Torna al Menù</button>
                 </div>
                 <div id="progress-container" class="mb-4">
                     <p id="progress-text" class="mb-1 text-center"></p>
@@ -139,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
         quizContainer.innerHTML = quizHeaderHTML;
         renderQuestions();
         
-        quizContainer.querySelector('#back-to-menu-during-quiz-btn').addEventListener('click', handleBackToMenuDuringQuiz);
         quizContainer.querySelector('#submit-btn').addEventListener('click', handleSubmit);
         quizContainer.querySelector('#quiz-form').addEventListener('input', updateProgress);
     }
@@ -151,15 +155,33 @@ document.addEventListener('DOMContentLoaded', () => {
         
         currentTestQuestions.forEach((q, index) => {
             questionCounter++;
-            let helpButtonHTML = '';
+            let helpButtonsHTML = '';
+            
+            // Add show answer button
+            const answerText = q.type === 'open_ended' ? 
+                (q.model_answer ? q.model_answer.summary : '') : 
+                (q.answer || '');
+            
+            helpButtonsHTML += `
+                <button type="button" class="help-btn show-answer-btn" data-answer="${answerText}">
+                    <i class="bi bi-check-circle-fill" style="font-size: 24px; color: var(--success-color);"></i>
+                </button>`;
+
+            // Add reflection button if prompt exists
             if (q.reflection_prompt) {
-                helpButtonHTML = `
+                helpButtonsHTML += `
                     <button type="button" class="help-btn" data-reflection="${q.reflection_prompt}">
-                        <img src="brain-help.jpg" alt="Aiuto">
+                        <i class="bi bi-question-circle-fill question-icon"></i>
                     </button>`;
             }
             
-            formHTML += `<div class="question-block" id="q-block-${index}"><p class="question-text"><span>${questionCounter}. ${q.question}</span> ${helpButtonHTML}</p><div class="options-container">`;
+            formHTML += `
+                <div class="question-block" id="q-block-${index}">
+                    <p class="question-text">
+                        <span>${questionCounter}. ${q.question}</span>
+                        <span class="help-buttons">${helpButtonsHTML}</span>
+                    </p>
+                    <div class="options-container">`;
             
             switch (q.type) {
                 case 'multiple_choice':
@@ -168,11 +190,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     options.forEach(option => {
                         const optionId = `q-${index}-${option.replace(/[^a-zA-Z0-9]/g, '')}`;
                         const optionValue = q.type === 'true_false' ? (option === 'Vero' ? 'true' : 'false') : option;
-                        formHTML += `<div class="form-check"><input class="form-check-input" type="radio" name="q-${index}" id="${optionId}" value="${optionValue}" required><label class="form-check-label" for="${optionId}">${option}</label></div>`;
+                        formHTML += `<div class="form-check"><input class="form-check-input" type="radio" name="q-${index}" id="${optionId}" value="${optionValue}"><label class="form-check-label" for="${optionId}">${option}</label></div>`;
                     });
                     break;
                 case 'short_answer':
-                    formHTML += `<input type="text" class="form-control" name="q-${index}" placeholder="La tua risposta..." required>`;
+                    formHTML += `<input type="text" class="form-control" name="q-${index}" placeholder="La tua risposta...">`;
                     break;
                 case 'open_ended':
                     formHTML += `<textarea class="form-control" name="q-${index}" rows="4" placeholder="Spiega con parole tue..."></textarea>`;
@@ -180,16 +202,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             formHTML += '</div></div>';
         });
+        
         quizForm.innerHTML = formHTML;
 
+        // Add event listeners for all help buttons
         quizForm.querySelectorAll('.help-btn').forEach(btn => {
-            if (btn) btn.addEventListener('click', (e) => {
-                e.preventDefault(); 
-                const prompt = e.currentTarget.dataset.reflection;
-                document.getElementById('reflection-modal-body').textContent = prompt;
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const reflectionPrompt = btn.dataset.reflection;
+                const answer = btn.dataset.answer;
+                
+                document.getElementById('modal-title-text').textContent = 
+                    reflectionPrompt ? 'Spunto di Riflessione' : 'Risposta Corretta';
+                    
+                document.getElementById('reflection-modal-body').textContent = 
+                    reflectionPrompt || answer;
+                    
                 reflectionModal.show();
             });
         });
+
         updateProgress();
     }
     
@@ -202,13 +234,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const answeredNames = new Set();
         
         inputs.forEach(input => {
-            if ((input.type === 'radio' && input.checked) || (input.type !== 'radio' && input.value.trim() !== '')) {
+            if ((input.type === 'radio' && input.checked) || 
+                (input.type !== 'radio' && input.value.trim() !== '')) {
                 answeredNames.add(input.name);
             }
         });
         
         const answeredCount = answeredNames.size;
-        quizContainer.querySelector('#progress-text').textContent = `Domande risposte: ${answeredCount} di ${totalQuestions}`;
+        quizContainer.querySelector('#progress-text').textContent = 
+            `Domande risposte: ${answeredCount} di ${totalQuestions}`;
         const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
         quizContainer.querySelector('#progress-bar-inner').style.width = `${progressPercentage}%`;
     }
@@ -222,7 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentTestQuestions.forEach((q, index) => {
             questionCounter++;
-            const inputElement = document.querySelector(`[name="q-${index}"]:checked`) || document.querySelector(`[name="q-${index}"]`);
+            const inputElement = document.querySelector(`[name="q-${index}"]:checked`) || 
+                               document.querySelector(`[name="q-${index}"]`);
             const userAnswer = inputElement ? inputElement.value.trim() : "";
 
             if (q.type !== 'open_ended') {
@@ -230,44 +265,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 let resultClass = isCorrect ? 'correct' : 'incorrect';
                 if (isCorrect) score++;
                 
-                resultsHTML += `<div class="result-item ${resultClass}"><p class="result-question">${questionCounter}. ${q.question}</p><p><strong>La tua risposta:</strong> ${userAnswer || "<em>Nessuna risposta</em>"}</p>${!isCorrect ? `<p class="result-explanation"><strong>Spiegazione:</strong> ${q.explanation}</p>` : ''}</div>`;
-               } else {
-                let keywordsHTML = '';
+                resultsHTML += `
+                    <div class="result-item ${resultClass}">
+                        <p class="result-question">${questionCounter}. ${q.question}</p>
+                        <p><strong>La tua risposta:</strong> ${userAnswer || "<em>Nessuna risposta</em>"}</p>
+                        <p class="result-explanation"><strong>Risposta corretta:</strong> ${q.answer}</p>
+                        ${q.explanation ? `<p class="result-explanation"><strong>Spiegazione:</strong> ${q.explanation}</p>` : ''}
+                    </div>`;
+            } else {
                 let modelAnswerHTML = '';
                 if (q.model_answer) {
-                    // Show summary and keywords as a "Risposta corretta"
-                    modelAnswerHTML += `<div class="model-answer-section"><strong>Risposta corretta:</strong> <div class="model-answer-summary">${q.model_answer.summary || ""}</div>`;
+                    modelAnswerHTML = `
+                        <div class="model-answer-section mt-3">
+                            <strong>Risposta corretta:</strong>
+                            <div class="model-answer-summary">${q.model_answer.summary || ""}</div>`;
+                    
                     if (q.model_answer.keywords && q.model_answer.keywords.length > 0) {
-                        modelAnswerHTML += `<ul class="model-answer-keywords">`;
-                        q.model_answer.keywords.forEach(kw =>
-                            modelAnswerHTML += `<li><strong>${kw.keyword}</strong>: ${kw.explanation}</li>`
-                        );
-                        modelAnswerHTML += `</ul>`;
+                        modelAnswerHTML += `
+                            <div class="mt-2">
+                                <strong>Concetti chiave:</strong>
+                                <ul class="model-answer-keywords">`;
+                        q.model_answer.keywords.forEach(kw => {
+                            modelAnswerHTML += `
+                                <li><strong>${kw.keyword}</strong>: ${kw.explanation}</li>`;
+                        });
+                        modelAnswerHTML += `</ul></div>`;
                     }
                     modelAnswerHTML += `</div>`;
                 }
-                if (q.model_answer && q.model_answer.keywords) {
-                    q.model_answer.keywords.forEach((kw, kw_index) => {
-                        keywordsHTML += `<div class="form-check keyword-checklist-item"><input class="form-check-input" type="checkbox" id="kw-${index}-${kw_index}"><label class="form-check-label" for="kw-${index}-${kw_index}"><span>${kw.keyword}</span><i class="bi bi-info-circle-fill" data-bs-toggle="tooltip" data-bs-placement="top" title="${kw.explanation}"></i></label></div>`;
-                    });
-                }
-                resultsHTML += `<div class="result-item open"><p class="result-question">${questionCounter}. ${q.question}</p>
-                    <div class="row">
-                        <div class="col-md-6 mb-3 mb-md-0">
-                            <strong>La tua risposta:</strong>
-                            <div class="user-answer-box">${userAnswer.replace(/</g, "<").replace(/>/g, ">") || "<em>Nessuna risposta</em>"}</div>
-                            ${modelAnswerHTML}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Concetti Chiave (autovalutazione):</strong>
-                            <div class="keyword-summary">${q.model_answer ? q.model_answer.summary : ''}</div>
-                            <div id="checklist-${index}">${keywordsHTML}</div>
-                            <div class="progress mt-2" style="height: 10px;">
-                                <div class="progress-bar bg-success" id="progress-open-${index}" role="progressbar" style="width: 0%"></div>
+
+                resultsHTML += `
+                    <div class="result-item open">
+                        <p class="result-question">${questionCounter}. ${q.question}</p>
+                        <div class="row">
+                            <div class="col-12">
+                                <strong>La tua risposta:</strong>
+                                <div class="user-answer-box">
+                                    ${userAnswer ? userAnswer.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "<em>Nessuna risposta</em>"}
+                                </div>
+                                ${modelAnswerHTML}
                             </div>
                         </div>
-                    </div>
-                </div>`;
+                    </div>`;
             }
         });
         
@@ -276,33 +315,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const scoreDisplay = gradableCount > 0 ? `${score} / ${gradableCount}` : "Test di Autovalutazione";
-        const resultsPageHTML = `<div class="card-body p-md-5 p-4">
+        const resultsPageHTML = `
+            <div class="card-body p-md-5 p-4">
                 <h2 class="text-center">${quizContainer.querySelector('.quiz-title-text').textContent} - Risultati</h2>
                 <p class="text-center display-5 fw-bold my-4">${scoreDisplay}</p>
                 <div class="mt-4">${resultsHTML}</div>
                 <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-5">
-                    <button id="back-to-menu-from-results-btn" class="btn btn-lg btn-secondary">Torna al Menù</button>
-                    <button id="save-pdf-btn" class="btn btn-lg btn-danger"><i class="bi bi-file-earmark-pdf-fill"></i> Salva Risultati in PDF</button>
+                    <button id="save-pdf-btn" class="btn btn-lg btn-danger">
+                        <i class="bi bi-file-earmark-pdf-fill"></i> Salva Risultati in PDF
+                    </button>
                 </div>
             </div>`;
         
         resultsContainer.innerHTML = resultsPageHTML;
-        resultsContainer.querySelector('#back-to-menu-from-results-btn').addEventListener('click', resetToMenu);
         resultsContainer.querySelector('#save-pdf-btn').addEventListener('click', generatePdf);
-
-        new bootstrap.Tooltip(resultsContainer, { selector: '[data-bs-toggle="tooltip"]', trigger: 'hover', html: true });
-
-        currentTestQuestions.forEach((q, index) => {
-            if (q.type === 'open_ended') {
-                const checklist = document.getElementById(`checklist-${index}`);
-                if (checklist) checklist.addEventListener('change', () => {
-                    const checkboxes = checklist.querySelectorAll('input[type="checkbox"]');
-                    const checkedCount = checklist.querySelectorAll('input[type="checkbox"]:checked').length;
-                    const progressPercentage = (checkboxes.length > 0) ? (checkedCount / checkboxes.length) * 100 : 0;
-                    document.getElementById(`progress-open-${index}`).style.width = `${progressPercentage}%`;
-                });
-            }
-        });
 
         quizContainer.classList.add('d-none');
         resultsContainer.classList.remove('d-none');
@@ -328,7 +354,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveResult(testId, score, total) {
         const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
         if (!history[testId]) history[testId] = [];
-        history[testId].push({ score, total, percentage: total > 0 ? Math.round((score / total) * 100) : 0, date: new Date().toISOString() });
+        history[testId].push({ 
+            score, 
+            total, 
+            percentage: total > 0 ? Math.round((score / total) * 100) : 0, 
+            date: new Date().toISOString() 
+        });
         localStorage.setItem('quizHistory', JSON.stringify(history));
     }
 
@@ -355,10 +386,18 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 const canvasId = `chart-${testId}`;
                 testHTML += `<div class="history-chart-container"><canvas id="${canvasId}"></canvas></div>`;
-                testHTML += `<table class="table table-striped table-hover history-table"><thead><tr><th>Data</th><th>Punteggio</th><th>Percentuale</th></tr></thead><tbody>`;
+                testHTML += `<table class="table table-striped table-hover history-table">
+                    <thead><tr><th>Data</th><th>Punteggio</th><th>Percentuale</th></tr></thead><tbody>`;
                 [...testHistory].reverse().slice(0, 10).forEach(result => {
                     const date = new Date(result.date);
-                    testHTML += `<tr><td class="history-date">${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT')}</td><td><strong>${result.score} / ${result.total}</strong></td><td>${result.percentage}%</td></tr>`;
+                    testHTML += `
+                        <tr>
+                            <td class="history-date">
+                                ${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT')}
+                            </td>
+                            <td><strong>${result.score} / ${result.total}</strong></td>
+                            <td>${result.percentage}%</td>
+                        </tr>`;
                 });
                 testHTML += '</tbody></table>';
             }
@@ -412,12 +451,6 @@ document.addEventListener('DOMContentLoaded', () => {
         menuContainer.classList.remove('d-none');
     }
     
-    function handleBackToMenuDuringQuiz() {
-        if (confirm("Sei sicuro di voler tornare al menù principale? Perderai i progressi di questo test.")) {
-            resetToMenu();
-        }
-    }
-    
     function performSearch() {
         const query = searchInput.value.trim().toLowerCase();
         if (query.length < 3) {
@@ -436,7 +469,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     new RegExp(query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi'),
                     '<span class="highlight">$&</span>'
                 );
-                resultsHTML += `<div class="search-result-item"><p class="search-result-question">${res.question} <small class="text-muted">(${res.test})</small></p><p class="search-result-answer">${highlightedExplanation}</p></div>`;
+                resultsHTML += `
+                    <div class="search-result-item">
+                        <p class="search-result-question">${res.question} 
+                            <small class="text-muted">(${res.test})</small>
+                        </p>
+                        <p class="search-result-answer">${highlightedExplanation}</p>
+                    </div>`;
             });
             searchResultsContainer.innerHTML = resultsHTML;
         }
@@ -454,10 +493,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', clearHistory);
     if (backToMenuFromHistoryBtn) backToMenuFromHistoryBtn.addEventListener('click', resetToMenu);
 
-    if (searchToggleBtn) searchToggleBtn.addEventListener('click', () => { searchOverlay.classList.remove('d-none'); document.body.style.overflow = 'hidden'; searchInput.focus(); });
+    if (searchToggleBtn) {
+        searchToggleBtn.addEventListener('click', () => {
+            searchOverlay.classList.remove('d-none');
+            document.body.style.overflow = 'hidden';
+            searchInput.focus();
+        });
+    }
     if (searchCloseBtn) searchCloseBtn.addEventListener('click', closeSearch);
     if (searchInput) searchInput.addEventListener('input', performSearch);
-    if (searchOverlay) searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
+    if (searchOverlay) {
+        searchOverlay.addEventListener('click', (e) => {
+            if (e.target === searchOverlay) closeSearch();
+        });
+    }
 
     if(tutorButton) {
         tutorButton.addEventListener('click', () => {
