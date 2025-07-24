@@ -268,22 +268,27 @@ helpButtonsHTML += `
         
         quizForm.innerHTML = formHTML;
 
-        // Add event listeners for all help buttons
-        quizForm.querySelectorAll('.help-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const reflectionPrompt = btn.dataset.reflection;
-                const answer = btn.dataset.answer;
-                
-                document.getElementById('modal-title-text').textContent = 
-                    reflectionPrompt ? 'Spunto di Riflessione' : 'Risposta Corretta';
-                    
-                document.getElementById('reflection-modal-body').textContent = 
-                    reflectionPrompt || answer;
-                    
-                reflectionModal.show();
-            });
-        });
+// Add event listeners for all help buttons
+quizForm.querySelectorAll('.help-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const reflectionPrompt = btn.dataset.reflection;
+        const answer = btn.dataset.answer;
+        
+        const modalTitleElement = document.getElementById('modal-title-text');
+        const modalBodyElement = document.getElementById('reflection-modal-body');
+        
+        if (!modalTitleElement || !modalBodyElement || !reflectionModal) {
+            console.error('Modal elements not found');
+            return;
+        }
+        
+        modalTitleElement.textContent = reflectionPrompt ? 'Spunto di Riflessione' : 'Risposta Corretta';
+        modalBodyElement.textContent = reflectionPrompt || answer;
+        
+        reflectionModal.show();
+    });
+});
 
         updateProgress();
     }
