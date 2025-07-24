@@ -249,3 +249,39 @@ h1.card-title { font-size: 2.2rem; }
   pointer-events: none;
 }
 #tutor-button:hover + #speech-bubble { opacity: 1; }
+
+/* Floating Action Button Container */
+#fab-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 16px;
+}
+
+/* FAB Buttons */
+.fab-btn {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  transition: box-shadow 0.2s;
+}
+
+.fab-btn:active, .fab-btn:focus {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.24);
+}
+
+/* Modal for correct answer */
+#answerModal .modal-header {
+  background-color: #0dcaf0;
+}
+#answerModal .modal-body {
+  font-size: 1.1rem;
+}
