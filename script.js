@@ -799,5 +799,5 @@ function renderChart(testId, data) {
 
     
     
-});
+    initializeApp();
 });
