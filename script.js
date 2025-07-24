@@ -52,30 +52,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return array;
     }
 
-    async function initializeApp() {
-        try {
-            const response = await fetch('quiz.json');
-            if (!response.ok) throw new Error('Network response was not ok');
-            allQuestionsData = await response.json();
-            
-            buildSearchIndex(); 
+async function initializeApp() {
+    try {
+        const response = await fetch('quiz.json');
+        if (!response.ok) throw new Error('Network response was not ok');
+        allQuestionsData = await response.json();
+        
+        buildSearchIndex(); 
 
-            document.querySelectorAll('.menu-btn').forEach(button => {
-                if (button) button.addEventListener('click', () => startQuiz(button.dataset.testid));
+        // Initialize Bootstrap modal first
+        reflectionModal = new bootstrap.Modal(document.getElementById('reflection-modal'));
+
+        // Add event listeners after data is loaded
+        const menuButtons = document.querySelectorAll('.menu-btn');
+        if (menuButtons.length > 0) {
+            menuButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const testId = button.getAttribute('data-testid');
+                    if (testId) {
+                        startQuiz(testId);
+                    }
+                });
             });
-
-            reflectionModal = new bootstrap.Modal(document.getElementById('reflection-modal'));
-
-            // Add home button event listener
-            if (homeButton) {
-                homeButton.addEventListener('click', resetToMenu);
-            }
-
-        } catch (error) {
-            console.error('Failed to fetch questions:', error);
-            menuContainer.innerHTML = '<h1>Errore</h1><p>Impossibile caricare il test. Riprova più tardi.</p>';
         }
+
+        // Add home button event listener
+        if (homeButton) {
+            homeButton.addEventListener('click', resetToMenu);
+        }
+
+    } catch (error) {
+        console.error('Failed to fetch questions:', error);
+        menuContainer.innerHTML = '<h1>Errore</h1><p>Impossibile caricare il test. Riprova più tardi.</p>';
     }
+}
 
     function buildSearchIndex() {
         searchIndex = [];
