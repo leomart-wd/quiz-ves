@@ -187,19 +187,25 @@ document.addEventListener('DOMContentLoaded', () => {
             let helpButtonsHTML = '';
             
             // Add answer button with proper model answer content
-            const answerText = q.type === 'open_ended' ? 
-                (q.model_answer ? 
-                    (typeof q.model_answer === 'string' ? 
-                        q.model_answer : 
-                        q.model_answer.summary
-                    ) : ''
-                ) : 
-                (q.answer || '');
-                
-            helpButtonsHTML += `
-                <button type="button" class="help-btn show-answer-btn" data-answer="${answerText}">
-                    <i class="bi bi-check-circle-fill answer-icon"></i>
-                </button>`;
+     
+
+            let answerText = '';
+if (q.type === 'open_ended') {
+    answerText = q.model_answer ? 
+        (typeof q.model_answer === 'string' ? 
+            q.model_answer : 
+            q.model_answer.summary
+        ) : '';
+} else if (q.type === 'true_false') {
+    answerText = q.answer === 'true' ? 'Vero' : 'Falso';
+} else {
+    answerText = q.answer || '';
+}
+
+helpButtonsHTML += `
+    <button type="button" class="help-btn show-answer-btn" data-answer="${answerText}">
+        <i class="bi bi-check-circle-fill answer-icon"></i>
+    </button>`;
 
             // Add reflection button if prompt exists
             if (q.reflection_prompt) {
