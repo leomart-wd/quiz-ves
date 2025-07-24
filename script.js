@@ -356,4 +356,186 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer.classList.remove('d-none');
     }
 
+        function generatePdf() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const resultsContent = resultsContainer.querySelector('.mt-4').innerText;
+        const testTitle = resultsContainer.querySelector('h2').textContent;
+        const score = resultsContainer.querySelector('p.display-5').textContent;
+
+        doc.setFontSize(18);
+        doc.text(testTitle, 105, 20, { align: 'center' });
+        doc.setFontSize(14);
+        doc.text(`Punteggio: ${score}`, 105, 30, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text(resultsContent, 20, 45);
+        
+        doc.save(`risultati_${currentTestId}_${new Date().toISOString().slice(0,10)}.pdf`);
+    }
+
+    function saveResult(testId, score, total) {
+        const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
+        if (!history[testId]) history[testId] = [];
+        history[testId].push({ 
+            score, 
+            total, 
+            percentage: total > 0 ? Math.round((score / total) * 100) : 0, 
+            date: new Date().toISOString() 
+        });
+        localStorage.setItem('quizHistory', JSON.stringify(history));
+    }
+
+    function viewHistory() {
+        menuContainer.classList.add('d-none');
+        historyContainer.classList.remove('d-none');
+        
+        const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
+        historyContent.innerHTML = '';
+
+        if (Object.keys(history).length === 0) {
+            historyContent.innerHTML = '<p class="text-center text-muted">Nessun risultato salvato.</p>';
+            return;
+        }
+
+        Object.keys(allQuestionsData).forEach(testId => {
+            if (!allQuestionsData[testId].filter) return;
+            const testHistory = history[testId];
+            const testTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
+            
+            let testHTML = `<div class="mb-5"><h3>${testTitle}</h3>`;
+            if (!testHistory || testHistory.length === 0) {
+                testHTML += '<p class="text-muted">Nessun tentativo registrato per questo test.</p>';
+            } else {
+                const canvasId = `chart-${testId}`;
+                testHTML += `<div class="history-chart-container"><canvas id="${canvasId}"></canvas></div>`;
+                testHTML += `<table class="table table-striped table-hover history-table">
+                    <thead><tr><th>Data</th><th>Punteggio</th><th>Percentuale</th></tr></thead><tbody>`;
+                [...testHistory].reverse().slice(0, 10).forEach(result => {
+                    const date = new Date(result.date);
+                    testHTML += `
+                        <tr>
+                            <td class="history-date">
+                                ${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT')}
+                            </td>
+                            <td><strong>${result.score} / ${result.total}</strong></td>
+                            <td>${result.percentage}%</td>
+                        </tr>`;
+                });
+                testHTML += '</tbody></table>';
+            }
+            testHTML += '</div><hr>';
+            historyContent.innerHTML += testHTML;
+        });
+
+        Object.keys(history).forEach(testId => {
+            if (history[testId] && history[testId].length > 0) {
+                renderChart(testId, history[testId]);
+            }
+        });
+    }
+
+    function renderChart(testId, data) {
+        const canvas = document.getElementById(`chart-${testId}`);
+        if (!canvas) return;
+        if (chartInstances[testId]) chartInstances[testId].destroy();
+
+        const labels = data.map(r => new Date(r.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }));
+        const percentages = data.map(r => r.percentage);
+
+        chartInstances[testId] = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Andamento Punteggio (%)',
+                    data: percentages,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+        });
+    }
+
+    function clearHistory() {
+        if (confirm("Sei sicuro di voler cancellare TUTTO lo storico dei risultati? L'azione è irreversibile.")) {
+            localStorage.removeItem('quizHistory');
+            viewHistory();
+        }
+    }
+
+    function resetToMenu() {
+        quizContainer.classList.add('d-none');
+        resultsContainer.classList.add('d-none');
+        historyContainer.classList.add('d-none');
+        menuContainer.classList.remove('d-none');
+    }
+    
+    function performSearch() {
+        const query = searchInput.value.trim().toLowerCase();
+        if (query.length < 3) {
+            searchResultsContainer.innerHTML = '<p class="no-results">Scrivi almeno 3 caratteri per iniziare la ricerca.</p>';
+            return;
+        }
+
+        const results = searchIndex.filter(item => item.text_to_search.includes(query));
+
+        if (results.length === 0) {
+            searchResultsContainer.innerHTML = '<p class="no-results">Nessun risultato trovato.</p>';
+        } else {
+            let resultsHTML = '';
+            results.forEach(res => {
+                const highlightedExplanation = res.explanation.replace(
+                    new RegExp(query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi'),
+                    '<span class="highlight">$&</span>'
+                );
+                resultsHTML += `
+                    <div class="search-result-item">
+                        <p class="search-result-question">${res.question} 
+                            <small class="text-muted">(${res.test})</small>
+                        </p>
+                        <p class="search-result-answer">${highlightedExplanation}</p>
+                    </div>`;
+            });
+            searchResultsContainer.innerHTML = resultsHTML;
+        }
+    }
+    
+    function closeSearch() {
+        searchOverlay.classList.add('d-none');
+        document.body.style.overflow = '';
+        searchInput.value = '';
+        searchResultsContainer.innerHTML = '';
+    }
+
+    // Event Listeners
+    if (viewHistoryBtn) viewHistoryBtn.addEventListener('click', viewHistory);
+    if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', clearHistory);
+    if (backToMenuFromHistoryBtn) backToMenuFromHistoryBtn.addEventListener('click', resetToMenu);
+
+    if (searchToggleBtn) {
+        searchToggleBtn.addEventListener('click', () => {
+            searchOverlay.classList.remove('d-none');
+            document.body.style.overflow = 'hidden';
+            searchInput.focus();
+        });
+    }
+    if (searchCloseBtn) searchCloseBtn.addEventListener('click', closeSearch);
+    if (searchInput) searchInput.addEventListener('input', performSearch);
+    if (searchOverlay) {
+        searchOverlay.addEventListener('click', (e) => {
+            if (e.target === searchOverlay) closeSearch();
+        });
+    }
+
+    if(tutorButton) {
+        tutorButton.addEventListener('click', () => {
+            window.open('https://chatgpt.com/g/g-68778387b31081918d876453face6087-tutor-ves', 'TutorVES', 'width=500,height=700');
+        });
+    }
+
+    initializeApp();
+});
 
