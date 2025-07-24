@@ -356,22 +356,139 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer.classList.remove('d-none');
     }
 
-        function generatePdf() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const resultsContent = resultsContainer.querySelector('.mt-4').innerText;
-        const testTitle = resultsContainer.querySelector('h2').textContent;
-        const score = resultsContainer.querySelector('p.display-5').textContent;
 
-        doc.setFontSize(18);
-        doc.text(testTitle, 105, 20, { align: 'center' });
-        doc.setFontSize(14);
-        doc.text(`Punteggio: ${score}`, 105, 30, { align: 'center' });
-        doc.setFontSize(10);
-        doc.text(resultsContent, 20, 45);
+
+function generatePdf() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 20;
+    const usableWidth = pageWidth - (margin * 2);
+    
+    // Set initial position
+    let yPos = margin;
+    
+    // Get content
+    const testTitle = resultsContainer.querySelector('h2').textContent;
+    const score = resultsContainer.querySelector('p.display-5').textContent;
+    const resultItems = resultsContainer.querySelectorAll('.result-item');
+    
+    // Title
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    const titleLines = doc.splitTextToSize(testTitle, usableWidth);
+    titleLines.forEach(line => {
+        doc.text(line, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 8;
+    });
+    
+    // Score
+    yPos += 5;
+    doc.setFontSize(14);
+    doc.text(`Punteggio: ${score}`, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 15;
+    
+    // Results
+    doc.setFontSize(11);
+    resultItems.forEach((item, index) => {
+        // Check if we need a new page
+        if (yPos > pageHeight - margin) {
+            doc.addPage();
+            yPos = margin;
+        }
         
-        doc.save(`risultati_${currentTestId}_${new Date().toISOString().slice(0,10)}.pdf`);
+        // Question number and text
+        const questionEl = item.querySelector('.result-question');
+        doc.setFont('helvetica', 'bold');
+        const questionLines = doc.splitTextToSize(questionEl.textContent, usableWidth);
+        questionLines.forEach(line => {
+            doc.text(line, margin, yPos);
+            yPos += 6;
+        });
+        
+        // User's answer
+        yPos += 2;
+        doc.setFont('helvetica', 'normal');
+        const userAnswerLabel = "La tua risposta:";
+        doc.text(userAnswerLabel, margin, yPos);
+        yPos += 6;
+        
+        const userAnswerBox = item.querySelector('.user-answer-box');
+        if (userAnswerBox) {
+            const userAnswerLines = doc.splitTextToSize(userAnswerBox.textContent, usableWidth - 5);
+            userAnswerLines.forEach(line => {
+                if (yPos > pageHeight - margin) {
+                    doc.addPage();
+                    yPos = margin;
+                }
+                doc.text(line, margin + 5, yPos);
+                yPos += 6;
+            });
+        }
+        
+        // Model Answer (if exists)
+        const modelAnswer = item.querySelector('.model-answer-section');
+        if (modelAnswer) {
+            yPos += 2;
+            doc.setFont('helvetica', 'bold');
+            doc.text("Risposta corretta:", margin, yPos);
+            yPos += 6;
+            
+            doc.setFont('helvetica', 'normal');
+            const summary = modelAnswer.querySelector('.model-answer-summary');
+            if (summary) {
+                const summaryLines = doc.splitTextToSize(summary.textContent, usableWidth - 5);
+                summaryLines.forEach(line => {
+                    if (yPos > pageHeight - margin) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+                    doc.text(line, margin + 5, yPos);
+                    yPos += 6;
+                });
+            }
+            
+            // Keywords if they exist
+            const keywords = modelAnswer.querySelectorAll('.model-answer-keywords li');
+            if (keywords.length > 0) {
+                yPos += 2;
+                doc.setFont('helvetica', 'bold');
+                doc.text("Concetti chiave:", margin, yPos);
+                yPos += 6;
+                
+                doc.setFont('helvetica', 'normal');
+                keywords.forEach(keyword => {
+                    const keywordLines = doc.splitTextToSize(keyword.textContent, usableWidth - 10);
+                    keywordLines.forEach(line => {
+                        if (yPos > pageHeight - margin) {
+                            doc.addPage();
+                            yPos = margin;
+                        }
+                        doc.text("• " + line, margin + 5, yPos);
+                        yPos += 6;
+                    });
+                });
+            }
+        }
+        
+        // Add some spacing between questions
+        yPos += 10;
+        
+        // Draw a light separator line between questions
+        if (index < resultItems.length - 1) {
+            doc.setDrawColor(200);
+            doc.line(margin, yPos - 5, pageWidth - margin, yPos - 5);
+        }
+    });
+    
+    // Save the PDF
+    const fileName = `risultati_${currentTestId}_${new Date().toISOString().slice(0,10)}.pdf`;
+    doc.save(fileName);
+    
     }
+
+    
 
     function saveResult(testId, score, total) {
         const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
