@@ -189,17 +189,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add answer button with proper model answer content
      
 
-            let answerText = '';
+let answerText = '';
 if (q.type === 'open_ended') {
     answerText = q.model_answer ? 
         (typeof q.model_answer === 'string' ? 
             q.model_answer : 
             q.model_answer.summary
         ) : '';
-} else if (q.type === 'true_false') {
-    answerText = q.answer === 'true' ? 'Vero' : 'Falso';
 } else {
+    // For both true/false and multiple choice questions, show the actual answer
     answerText = q.answer || '';
+}
+
+// For true/false questions, convert 'true'/'false' to 'Vero'/'Falso' when displaying
+if (q.type === 'true_false') {
+    answerText = answerText.toLowerCase() === 'true' ? 'Vero' : 'Falso';
 }
 
 helpButtonsHTML += `
