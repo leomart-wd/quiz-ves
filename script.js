@@ -319,32 +319,51 @@ quizForm.querySelectorAll('.help-btn').forEach(btn => {
     }
 
 
-    function handleSubmit(e) {
-        e.preventDefault();
-        let score = 0;
-        let resultsHTML = '';
-        let questionCounter = 0;
-        const gradableCount = currentTestQuestions.filter(q => q.type !== 'open_ended').length;
+function handleSubmit(e) {
+    e.preventDefault();
+    let score = 0;
+    let resultsHTML = '';
+    let questionCounter = 0;
+    const gradableCount = currentTestQuestions.filter(q => q.type !== 'open_ended').length;
 
-        currentTestQuestions.forEach((q, index) => {
-            questionCounter++;
-            const inputElement = document.querySelector(`[name="q-${index}"]:checked`) || 
-                               document.querySelector(`[name="q-${index}"]`);
-            const userAnswer = inputElement ? inputElement.value.trim() : "";
+    currentTestQuestions.forEach((q, index) => {
+        questionCounter++;
+        const inputElement = document.querySelector(`[name="q-${index}"]:checked`) || 
+                           document.querySelector(`[name="q-${index}"]`);
+        const userAnswer = inputElement ? inputElement.value.trim() : "";
 
-            if (q.type !== 'open_ended') {
-                const isCorrect = userAnswer.toLowerCase() === (q.answer || '').toString().toLowerCase();
-                let resultClass = isCorrect ? 'correct' : 'incorrect';
-                if (isCorrect) score++;
-                
-                resultsHTML += `
-                    <div class="result-item ${resultClass}">
-                        <p class="result-question">${questionCounter}. ${q.question}</p>
-                        <p><strong>La tua risposta:</strong> ${userAnswer || "<em>Nessuna risposta</em>"}</p>
-                        <p class="result-explanation"><strong>Risposta corretta:</strong> ${q.answer}</p>
-                        ${q.explanation ? `<p class="result-explanation"><strong>Spiegazione:</strong> ${q.explanation}</p>` : ''}
-                    </div>`;
-            } else {
+        if (q.type !== 'open_ended') {
+            // Check if the question was actually answered
+            const isAnswered = inputElement && (
+                (inputElement.type === 'radio' && inputElement.checked) || 
+                (inputElement.type !== 'radio' && userAnswer !== "")
+            );
+
+            const isCorrect = isAnswered && userAnswer.toLowerCase() === (q.answer || '').toString().toLowerCase();
+            let resultClass = !isAnswered ? '' : (isCorrect ? 'correct' : 'incorrect');
+            
+            if (isCorrect) score++;
+            
+            // For true/false questions, convert the answer display
+            let displayAnswer = q.answer;
+            if (q.type === 'true_false') {
+                displayAnswer = q.answer.toLowerCase() === 'true' ? 'Vero' : 'Falso';
+            }
+
+            // For multiple choice, show the actual option text instead of the value
+            let displayUserAnswer = userAnswer;
+            if (q.type === 'true_false') {
+                displayUserAnswer = userAnswer.toLowerCase() === 'true' ? 'Vero' : 'Falso';
+            }
+
+            resultsHTML += `
+                <div class="result-item ${resultClass}">
+                    <p class="result-question">${questionCounter}. ${q.question}</p>
+                    <p><strong>La tua risposta:</strong> ${isAnswered ? displayUserAnswer : "<em>Nessuna risposta</em>"}</p>
+                    <p class="result-explanation"><strong>Risposta corretta:</strong> ${displayAnswer}</p>
+                    ${q.explanation ? `<p class="result-explanation"><strong>Spiegazione:</strong> ${q.explanation}</p>` : ''}
+                </div>`;
+        } else {
                 let modelAnswerHTML = '';
                 if (q.model_answer) {
                     if (typeof q.model_answer === 'string') {
