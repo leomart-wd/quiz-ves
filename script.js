@@ -29,8 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentTestQuestions = [];
     let chartInstances = {};
     let reflectionModal;
+    let currentQuizState = {
+        options: [],
+        questions: []
+    };
 
-    // Funzione per mescolare un array
+        // Funzione per mescolare un array
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -99,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function startQuiz(testId) {
+        function startQuiz(testId) {
         currentTestId = testId;
         const questionPool = allQuestionsData[testId] ? allQuestionsData[testId].filter(q => q.type !== 'header') : [];
         
@@ -122,6 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             currentTestQuestions = questionPool; 
         }
+        
+        // Reset quiz state
+        currentQuizState = {
+            options: [],
+            questions: [...currentTestQuestions]
+        };
         
         const testTitleText = document.querySelector(`[data-testid="${testId}"]`).textContent;
         renderQuizUI(testTitleText);
@@ -157,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
         quizContainer.querySelector('#quiz-form').addEventListener('input', updateProgress);
     }
 
-        function renderQuestions() {
+    function renderQuestions() {
         const quizForm = quizContainer.querySelector('#quiz-form');
         let formHTML = '';
         let questionCounter = 0;
@@ -188,8 +198,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <i class="bi bi-question-circle-fill question-icon"></i>
                     </button>`;
             }
-            
-            formHTML += `
+
+                        formHTML += `
                 <div class="question-block" id="q-block-${index}">
                     <p class="question-text">
                         <span>${questionCounter}. ${q.question}</span>
@@ -201,6 +211,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'multiple_choice':
                 case 'true_false':
                     const options = q.type === 'true_false' ? ['Vero', 'Falso'] : q.options;
+                    // Store options in currentQuizState for PDF generation
+                    currentQuizState.options[index] = options;
                     options.forEach(option => {
                         const optionId = `q-${index}-${option.replace(/[^a-zA-Z0-9]/g, '')}`;
                         const optionValue = q.type === 'true_false' ? (option === 'Vero' ? 'true' : 'false') : option;
@@ -261,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
         quizContainer.querySelector('#progress-bar-inner').style.width = `${progressPercentage}%`;
     }
 
-    function handleSubmit(e) {
+        function handleSubmit(e) {
         e.preventDefault();
         let score = 0;
         let resultsHTML = '';
@@ -356,211 +368,202 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer.classList.remove('d-none');
     }
 
-
-
-
-    function generatePdf() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-    const margin = 20;
-    const usableWidth = pageWidth - (margin * 2);
-    
-    // Set initial position
-    let yPos = margin;
-    
-    // Get content
-    const testTitle = resultsContainer.querySelector('h2').textContent;
-    const score = resultsContainer.querySelector('p.display-5').textContent;
-    const resultItems = resultsContainer.querySelectorAll('.result-item');
-    
-    // Add date and time
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('it-IT') + ' ' + now.toLocaleTimeString('it-IT');
-    
-    // Title
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    const titleLines = doc.splitTextToSize(testTitle, usableWidth);
-    titleLines.forEach(line => {
-        doc.text(line, pageWidth / 2, yPos, { align: 'center' });
-        yPos += 8;
-    });
-    
-    // Date and Score
-    yPos += 5;
-    doc.setFontSize(11);
-    doc.text(`Data: ${dateStr}`, margin, yPos);
-    yPos += 8;
-    doc.setFontSize(14);
-    doc.text(`Punteggio: ${score}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 15;
-    
-    // Results
-    doc.setFontSize(11);
-    resultItems.forEach((item, index) => {
-        // Check if we need a new page
-        if (yPos > pageHeight - margin) {
-            doc.addPage();
-            yPos = margin;
-        }
+        function generatePdf() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
+        const margin = 20;
+        const usableWidth = pageWidth - (margin * 2);
         
-        // Question number and text
-        const questionEl = item.querySelector('.result-question');
+        // Set initial position
+        let yPos = margin;
+        
+        // Get content
+        const testTitle = resultsContainer.querySelector('h2').textContent;
+        const score = resultsContainer.querySelector('p.display-5').textContent;
+        const resultItems = resultsContainer.querySelectorAll('.result-item');
+        
+        // Add date and time
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('it-IT') + ' ' + now.toLocaleTimeString('it-IT');
+        
+        // Title
+        doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
-        const questionLines = doc.splitTextToSize(questionEl.textContent, usableWidth);
-        questionLines.forEach(line => {
-            doc.text(line, margin, yPos);
-            yPos += 6;
+        const titleLines = doc.splitTextToSize(testTitle, usableWidth);
+        titleLines.forEach(line => {
+            doc.text(line, pageWidth / 2, yPos, { align: 'center' });
+            yPos += 8;
         });
         
-        // Print all available options for multiple choice questions
-        const optionsContainer = quizContainer.querySelector(`#q-block-${index} .options-container`);
-        if (optionsContainer && optionsContainer.querySelectorAll('.form-check').length > 0) {
-            yPos += 2;
-            doc.setFont('helvetica', 'bold');
-            doc.text("Opzioni disponibili:", margin, yPos);
-            yPos += 6;
-            
-            doc.setFont('helvetica', 'normal');
-            optionsContainer.querySelectorAll('.form-check-label').forEach((option, optIndex) => {
-                const optionText = `${optIndex + 1}) ${option.textContent}`;
-                const optionLines = doc.splitTextToSize(optionText, usableWidth - 10);
-                optionLines.forEach(line => {
-                    if (yPos > pageHeight - margin) {
-                        doc.addPage();
-                        yPos = margin;
-                    }
-                    doc.text(line, margin + 5, yPos);
-                    yPos += 6;
-                });
-            });
-        }
+        // Date and Score
+        yPos += 5;
+        doc.setFontSize(11);
+        doc.text(`Data: ${dateStr}`, margin, yPos);
+        yPos += 8;
+        doc.setFontSize(14);
+        doc.text(`Punteggio: ${score}`, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 15;
         
-        // User's answer
-        yPos += 2;
-        doc.setFont('helvetica', 'bold');
-        doc.text("La tua risposta:", margin, yPos);
-        yPos += 6;
-        
-        doc.setFont('helvetica', 'normal');
-        const userAnswerBox = item.querySelector('.user-answer-box') || 
-                            item.querySelector('strong:contains("La tua risposta:") + *');
-        if (userAnswerBox) {
-            const userAnswerLines = doc.splitTextToSize(
-                userAnswerBox.textContent.replace('La tua risposta:', '').trim(), 
-                usableWidth - 5
-            );
-            userAnswerLines.forEach(line => {
-                if (yPos > pageHeight - margin) {
-                    doc.addPage();
-                    yPos = margin;
-                }
-                doc.text(line, margin + 5, yPos);
-                yPos += 6;
-            });
-        }
-        
-        // Correct Answer for all question types
-        yPos += 2;
-        doc.setFont('helvetica', 'bold');
-        doc.text("Risposta corretta:", margin, yPos);
-        yPos += 6;
-        
-        doc.setFont('helvetica', 'normal');
-        const correctAnswerEl = item.querySelector('.result-explanation');
-        if (correctAnswerEl) {
-            // For multiple choice, true/false, and short answer questions
-            const answerText = correctAnswerEl.textContent.replace('Risposta corretta: ', '').split('Spiegazione:')[0];
-            const answerLines = doc.splitTextToSize(answerText, usableWidth - 5);
-            answerLines.forEach(line => {
-                if (yPos > pageHeight - margin) {
-                    doc.addPage();
-                    yPos = margin;
-                }
-                doc.text(line, margin + 5, yPos);
-                yPos += 6;
-            });
-        }
-        
-        // Explanation (for all question types)
-        const explanationEl = item.querySelector('.result-explanation');
-        if (explanationEl && explanationEl.textContent.includes('Spiegazione:')) {
-            yPos += 2;
-            doc.setFont('helvetica', 'bold');
-            doc.text("Spiegazione:", margin, yPos);
-            yPos += 6;
-            
-            doc.setFont('helvetica', 'normal');
-            const explanationText = explanationEl.textContent.split('Spiegazione:')[1];
-            const explanationLines = doc.splitTextToSize(explanationText, usableWidth - 5);
-            explanationLines.forEach(line => {
-                if (yPos > pageHeight - margin) {
-                    doc.addPage();
-                    yPos = margin;
-                }
-                doc.text(line, margin + 5, yPos);
-                yPos += 6;
-            });
-        }
-        
-        // Model Answer for open-ended questions
-        const modelAnswer = item.querySelector('.model-answer-section');
-        if (modelAnswer) {
-            const summary = modelAnswer.querySelector('.model-answer-summary');
-            if (summary) {
-                const summaryLines = doc.splitTextToSize(summary.textContent, usableWidth - 5);
-                summaryLines.forEach(line => {
-                    if (yPos > pageHeight - margin) {
-                        doc.addPage();
-                        yPos = margin;
-                    }
-                    doc.text(line, margin + 5, yPos);
-                    yPos += 6;
-                });
+        // Results
+        doc.setFontSize(11);
+        resultItems.forEach((item, index) => {
+            // Check if we need a new page
+            if (yPos > pageHeight - margin) {
+                doc.addPage();
+                yPos = margin;
             }
             
-            // Keywords if they exist
-            const keywords = modelAnswer.querySelectorAll('.model-answer-keywords li');
-            if (keywords.length > 0) {
+            // Question number and text
+            const questionEl = item.querySelector('.result-question');
+            doc.setFont('helvetica', 'bold');
+            const questionLines = doc.splitTextToSize(questionEl.textContent, usableWidth);
+            questionLines.forEach(line => {
+                doc.text(line, margin, yPos);
+                yPos += 6;
+            });
+            
+            // Print all available options if they exist in currentQuizState
+            const options = currentQuizState.options[index];
+            if (options && options.length > 0) {
                 yPos += 2;
                 doc.setFont('helvetica', 'bold');
-                doc.text("Concetti chiave:", margin, yPos);
+                doc.text("Opzioni disponibili:", margin, yPos);
                 yPos += 6;
                 
                 doc.setFont('helvetica', 'normal');
-                keywords.forEach(keyword => {
-                    const keywordLines = doc.splitTextToSize(keyword.textContent, usableWidth - 10);
-                    keywordLines.forEach(line => {
+                options.forEach((optionText, optIndex) => {
+                    const optionLine = `${optIndex + 1}) ${optionText}`;
+                    const optionLines = doc.splitTextToSize(optionLine, usableWidth - 10);
+                    optionLines.forEach(line => {
                         if (yPos > pageHeight - margin) {
                             doc.addPage();
                             yPos = margin;
                         }
-                        doc.text("• " + line, margin + 5, yPos);
+                        doc.text(line, margin + 5, yPos);
                         yPos += 6;
                     });
                 });
             }
-        }
-        
-        // Add some spacing between questions
-        yPos += 10;
-        
-        // Draw a light separator line between questions
-        if (index < resultItems.length - 1) {
-            doc.setDrawColor(200);
-            doc.line(margin, yPos - 5, pageWidth - margin, yPos - 5);
-        }
-    });
-    
-    // Save the PDF
-    const fileName = `risultati_${currentTestId}_${new Date().toISOString().slice(0,10)}.pdf`;
-    doc.save(fileName);
-}
-    
+            
+            // User's answer
+            yPos += 2;
+            doc.setFont('helvetica', 'bold');
+            doc.text("La tua risposta:", margin, yPos);
+            yPos += 6;
+            
+            doc.setFont('helvetica', 'normal');
+            const userAnswerBox = item.querySelector('.user-answer-box');
+            if (userAnswerBox) {
+                const userAnswerText = userAnswerBox.textContent.trim();
+                const userAnswerLines = doc.splitTextToSize(userAnswerText, usableWidth - 5);
+                userAnswerLines.forEach(line => {
+                    if (yPos > pageHeight - margin) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+                    doc.text(line, margin + 5, yPos);
+                    yPos += 6;
+                });
+            }
+            
+            // Correct Answer and Explanation
+            const explanationEl = item.querySelector('.result-explanation');
+            if (explanationEl) {
+                // Correct Answer
+                yPos += 2;
+                doc.setFont('helvetica', 'bold');
+                doc.text("Risposta corretta:", margin, yPos);
+                yPos += 6;
+                
+                doc.setFont('helvetica', 'normal');
+                const answerText = explanationEl.textContent.split('Spiegazione:')[0].replace('Risposta corretta:', '').trim();
+                const answerLines = doc.splitTextToSize(answerText, usableWidth - 5);
+                answerLines.forEach(line => {
+                    if (yPos > pageHeight - margin) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+                    doc.text(line, margin + 5, yPos);
+                    yPos += 6;
+                });
 
-    
+                // Explanation if exists
+                if (explanationEl.textContent.includes('Spiegazione:')) {
+                    yPos += 2;
+                    doc.setFont('helvetica', 'bold');
+                    doc.text("Spiegazione:", margin, yPos);
+                    yPos += 6;
+                    
+                    doc.setFont('helvetica', 'normal');
+                    const explanationText = explanationEl.textContent.split('Spiegazione:')[1].trim();
+                    const explanationLines = doc.splitTextToSize(explanationText, usableWidth - 5);
+                    explanationLines.forEach(line => {
+                        if (yPos > pageHeight - margin) {
+                            doc.addPage();
+                            yPos = margin;
+                        }
+                        doc.text(line, margin + 5, yPos);
+                        yPos += 6;
+                    });
+                }
+            }
+
+
+                        // Model Answer section for open-ended questions
+            const modelAnswer = item.querySelector('.model-answer-section');
+            if (modelAnswer) {
+                const summary = modelAnswer.querySelector('.model-answer-summary');
+                if (summary) {
+                    const summaryLines = doc.splitTextToSize(summary.textContent, usableWidth - 5);
+                    summaryLines.forEach(line => {
+                        if (yPos > pageHeight - margin) {
+                            doc.addPage();
+                            yPos = margin;
+                        }
+                        doc.text(line, margin + 5, yPos);
+                        yPos += 6;
+                    });
+                }
+                
+                // Keywords if they exist
+                const keywords = modelAnswer.querySelectorAll('.model-answer-keywords li');
+                if (keywords.length > 0) {
+                    yPos += 2;
+                    doc.setFont('helvetica', 'bold');
+                    doc.text("Concetti chiave:", margin, yPos);
+                    yPos += 6;
+                    
+                    doc.setFont('helvetica', 'normal');
+                    keywords.forEach(keyword => {
+                        const keywordLines = doc.splitTextToSize(keyword.textContent, usableWidth - 10);
+                        keywordLines.forEach(line => {
+                            if (yPos > pageHeight - margin) {
+                                doc.addPage();
+                                yPos = margin;
+                            }
+                            doc.text("• " + line, margin + 5, yPos);
+                            yPos += 6;
+                        });
+                    });
+                }
+            }
+            
+            // Add some spacing between questions
+            yPos += 10;
+            
+            // Draw a light separator line between questions
+            if (index < resultItems.length - 1) {
+                doc.setDrawColor(200);
+                doc.line(margin, yPos - 5, pageWidth - margin, yPos - 5);
+            }
+        });
+        
+        // Save the PDF
+        const fileName = `risultati_${currentTestId}_${new Date().toISOString().slice(0,10)}.pdf`;
+        doc.save(fileName);
+    }
 
     function saveResult(testId, score, total) {
         const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
@@ -572,80 +575,6 @@ document.addEventListener('DOMContentLoaded', () => {
             date: new Date().toISOString() 
         });
         localStorage.setItem('quizHistory', JSON.stringify(history));
-    }
-
-    function viewHistory() {
-        menuContainer.classList.add('d-none');
-        historyContainer.classList.remove('d-none');
-        
-        const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
-        historyContent.innerHTML = '';
-
-        if (Object.keys(history).length === 0) {
-            historyContent.innerHTML = '<p class="text-center text-muted">Nessun risultato salvato.</p>';
-            return;
-        }
-
-        Object.keys(allQuestionsData).forEach(testId => {
-            if (!allQuestionsData[testId].filter) return;
-            const testHistory = history[testId];
-            const testTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
-            
-            let testHTML = `<div class="mb-5"><h3>${testTitle}</h3>`;
-            if (!testHistory || testHistory.length === 0) {
-                testHTML += '<p class="text-muted">Nessun tentativo registrato per questo test.</p>';
-            } else {
-                const canvasId = `chart-${testId}`;
-                testHTML += `<div class="history-chart-container"><canvas id="${canvasId}"></canvas></div>`;
-                testHTML += `<table class="table table-striped table-hover history-table">
-                    <thead><tr><th>Data</th><th>Punteggio</th><th>Percentuale</th></tr></thead><tbody>`;
-                [...testHistory].reverse().slice(0, 10).forEach(result => {
-                    const date = new Date(result.date);
-                    testHTML += `
-                        <tr>
-                            <td class="history-date">
-                                ${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT')}
-                            </td>
-                            <td><strong>${result.score} / ${result.total}</strong></td>
-                            <td>${result.percentage}%</td>
-                        </tr>`;
-                });
-                testHTML += '</tbody></table>';
-            }
-            testHTML += '</div><hr>';
-            historyContent.innerHTML += testHTML;
-        });
-
-        Object.keys(history).forEach(testId => {
-            if (history[testId] && history[testId].length > 0) {
-                renderChart(testId, history[testId]);
-            }
-        });
-    }
-
-    function renderChart(testId, data) {
-        const canvas = document.getElementById(`chart-${testId}`);
-        if (!canvas) return;
-        if (chartInstances[testId]) chartInstances[testId].destroy();
-
-        const labels = data.map(r => new Date(r.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }));
-        const percentages = data.map(r => r.percentage);
-
-        chartInstances[testId] = new Chart(canvas.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Andamento Punteggio (%)',
-                    data: percentages,
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                    fill: true,
-                    tension: 0.1
-                }]
-            },
-            options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
-        });
     }
 
     function clearHistory() {
@@ -728,3 +657,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
 });
 
+
+
+                          
