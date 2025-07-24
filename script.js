@@ -63,18 +63,21 @@ async function initializeApp() {
         // Initialize Bootstrap modal first
         reflectionModal = new bootstrap.Modal(document.getElementById('reflection-modal'));
 
-        // Add event listeners after data is loaded
+        // Remove existing event listeners and add new ones
         const menuButtons = document.querySelectorAll('.menu-btn');
-        if (menuButtons.length > 0) {
-            menuButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const testId = button.getAttribute('data-testid');
-                    if (testId) {
-                        startQuiz(testId);
-                    }
-                });
+        menuButtons.forEach(button => {
+            // Remove existing listeners
+            const oldButton = button.cloneNode(true);
+            button.parentNode.replaceChild(oldButton, button);
+            
+            // Add new listener
+            oldButton.addEventListener('click', () => {
+                const testId = oldButton.getAttribute('data-testid');
+                if (testId) {
+                    startQuiz(testId);
+                }
             });
-        }
+        });
 
         // Add home button event listener
         if (homeButton) {
