@@ -278,10 +278,45 @@ h1.card-title { font-size: 2.2rem; }
   box-shadow: 0 4px 24px rgba(0,0,0,0.24);
 }
 
-/* Modal for correct answer */
+/* Modal Headers */
 #answerModal .modal-header {
   background-color: #0dcaf0;
 }
 #answerModal .modal-body {
   font-size: 1.1rem;
+}
+#reflectionModal .modal-header {
+  background-color: #ffc107;
+}
+
+/* Question block buttons */
+.question-block .quick-btn {
+  margin-right: 8px;
+}
+
+.question-block .brain-btn {
+  height: 32px;
+  width: 32px;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.question-block .brain-btn img {
+  width: 28px;
+  height: 28px;
+}
+
+/* Responsive spacing */
+@media (max-width: 500px) {
+  #fab-container {
+    bottom: 12px;
+    right: 12px;
+    gap: 10px;
+  }
+  .fab-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.5rem;
+  }
 }
