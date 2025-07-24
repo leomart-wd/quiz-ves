@@ -358,7 +358,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-function generatePdf() {
+
+    function generatePdf() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -374,6 +375,10 @@ function generatePdf() {
     const score = resultsContainer.querySelector('p.display-5').textContent;
     const resultItems = resultsContainer.querySelectorAll('.result-item');
     
+    // Add date and time
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 19).replace('T', ' ');
+    
     // Title
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
@@ -383,8 +388,11 @@ function generatePdf() {
         yPos += 8;
     });
     
-    // Score
+    // Date and Score
     yPos += 5;
+    doc.setFontSize(11);
+    doc.text(`Data: ${dateStr}`, margin, yPos);
+    yPos += 8;
     doc.setFontSize(14);
     doc.text(`Punteggio: ${score}`, pageWidth / 2, yPos, { align: 'center' });
     yPos += 15;
@@ -427,15 +435,52 @@ function generatePdf() {
             });
         }
         
-        // Model Answer (if exists)
-        const modelAnswer = item.querySelector('.model-answer-section');
-        if (modelAnswer) {
+        // Correct Answer for all question types
+        yPos += 2;
+        doc.setFont('helvetica', 'bold');
+        doc.text("Risposta corretta:", margin, yPos);
+        yPos += 6;
+        
+        doc.setFont('helvetica', 'normal');
+        const correctAnswerEl = item.querySelector('.result-explanation');
+        if (correctAnswerEl) {
+            // For multiple choice, true/false, and short answer questions
+            const answerText = correctAnswerEl.textContent.replace('Risposta corretta: ', '').split('Spiegazione:')[0];
+            const answerLines = doc.splitTextToSize(answerText, usableWidth - 5);
+            answerLines.forEach(line => {
+                if (yPos > pageHeight - margin) {
+                    doc.addPage();
+                    yPos = margin;
+                }
+                doc.text(line, margin + 5, yPos);
+                yPos += 6;
+            });
+        }
+        
+        // Explanation (for all question types)
+        const explanationEl = item.querySelector('.result-explanation');
+        if (explanationEl && explanationEl.textContent.includes('Spiegazione:')) {
             yPos += 2;
             doc.setFont('helvetica', 'bold');
-            doc.text("Risposta corretta:", margin, yPos);
+            doc.text("Spiegazione:", margin, yPos);
             yPos += 6;
             
             doc.setFont('helvetica', 'normal');
+            const explanationText = explanationEl.textContent.split('Spiegazione:')[1];
+            const explanationLines = doc.splitTextToSize(explanationText, usableWidth - 5);
+            explanationLines.forEach(line => {
+                if (yPos > pageHeight - margin) {
+                    doc.addPage();
+                    yPos = margin;
+                }
+                doc.text(line, margin + 5, yPos);
+                yPos += 6;
+            });
+        }
+        
+        // Model Answer for open-ended questions
+        const modelAnswer = item.querySelector('.model-answer-section');
+        if (modelAnswer) {
             const summary = modelAnswer.querySelector('.model-answer-summary');
             if (summary) {
                 const summaryLines = doc.splitTextToSize(summary.textContent, usableWidth - 5);
@@ -485,8 +530,9 @@ function generatePdf() {
     // Save the PDF
     const fileName = `risultati_${currentTestId}_${new Date().toISOString().slice(0,10)}.pdf`;
     doc.save(fileName);
+}
+
     
-    }
 
     
 
