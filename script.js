@@ -231,17 +231,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isCorrect) score++;
                 
                 resultsHTML += `<div class="result-item ${resultClass}"><p class="result-question">${questionCounter}. ${q.question}</p><p><strong>La tua risposta:</strong> ${userAnswer || "<em>Nessuna risposta</em>"}</p>${!isCorrect ? `<p class="result-explanation"><strong>Spiegazione:</strong> ${q.explanation}</p>` : ''}</div>`;
-            } else {
-                // Show model answer for open-ended questions
+               } else {
                 let keywordsHTML = '';
                 let modelAnswerHTML = '';
                 if (q.model_answer) {
-                    modelAnswerHTML += `<div class="model-answer-section"><strong>Risposta corretta:</strong><div class="model-answer-summary">${q.model_answer.summary || ""}</div>`;
+                    // Show summary and keywords as a "Risposta corretta"
+                    modelAnswerHTML += `<div class="model-answer-section"><strong>Risposta corretta:</strong> <div class="model-answer-summary">${q.model_answer.summary || ""}</div>`;
                     if (q.model_answer.keywords && q.model_answer.keywords.length > 0) {
                         modelAnswerHTML += `<ul class="model-answer-keywords">`;
-                        q.model_answer.keywords.forEach(kw => {
-                            modelAnswerHTML += `<li><strong>${kw.keyword}</strong>: ${kw.explanation}</li>`;
-                        });
+                        q.model_answer.keywords.forEach(kw =>
+                            modelAnswerHTML += `<li><strong>${kw.keyword}</strong>: ${kw.explanation}</li>`
+                        );
                         modelAnswerHTML += `</ul>`;
                     }
                     modelAnswerHTML += `</div>`;
