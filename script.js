@@ -669,5 +669,83 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+function viewHistory() {
+    menuContainer.classList.add('d-none');
+    historyContainer.classList.remove('d-none');
+    
+    const history = JSON.parse(localStorage.getItem('quizHistory')) || {};
+    historyContent.innerHTML = '';
+
+    if (Object.keys(history).length === 0) {
+        historyContent.innerHTML = '<p class="text-center text-muted">Nessun risultato salvato.</p>';
+        return;
+    }
+
+    Object.keys(allQuestionsData).forEach(testId => {
+        if (!allQuestionsData[testId].filter) return;
+        const testHistory = history[testId];
+        const testTitle = document.querySelector(`[data-testid="${testId}"]`).textContent;
+        
+        let testHTML = `<div class="mb-5"><h3>${testTitle}</h3>`;
+        if (!testHistory || testHistory.length === 0) {
+            testHTML += '<p class="text-muted">Nessun tentativo registrato per questo test.</p>';
+        } else {
+            const canvasId = `chart-${testId}`;
+            testHTML += `<div class="history-chart-container"><canvas id="${canvasId}"></canvas></div>`;
+            testHTML += `<table class="table table-striped table-hover history-table">
+                <thead><tr><th>Data</th><th>Punteggio</th><th>Percentuale</th></tr></thead><tbody>`;
+            [...testHistory].reverse().slice(0, 10).forEach(result => {
+                const date = new Date(result.date);
+                testHTML += `
+                    <tr>
+                        <td class="history-date">
+                            ${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT')}
+                        </td>
+                        <td><strong>${result.score} / ${result.total}</strong></td>
+                        <td>${result.percentage}%</td>
+                    </tr>`;
+            });
+            testHTML += '</tbody></table>';
+        }
+        testHTML += '</div><hr>';
+        historyContent.innerHTML += testHTML;
+    });
+
+    Object.keys(history).forEach(testId => {
+        if (history[testId] && history[testId].length > 0) {
+            renderChart(testId, history[testId]);
+        }
+    });
+}
+
+    
+
+function renderChart(testId, data) {
+    const canvas = document.getElementById(`chart-${testId}`);
+    if (!canvas) return;
+    if (chartInstances[testId]) chartInstances[testId].destroy();
+
+    const labels = data.map(r => new Date(r.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }));
+    const percentages = data.map(r => r.percentage);
+
+    chartInstances[testId] = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Andamento Punteggio (%)',
+                data: percentages,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+    });
+}
+
+    
+    
     initializeApp();
 });
