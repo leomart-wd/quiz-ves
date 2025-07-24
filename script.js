@@ -156,3 +156,204 @@ document.addEventListener('DOMContentLoaded', () => {
         quizContainer.querySelector('#submit-btn').addEventListener('click', handleSubmit);
         quizContainer.querySelector('#quiz-form').addEventListener('input', updateProgress);
     }
+
+        function renderQuestions() {
+        const quizForm = quizContainer.querySelector('#quiz-form');
+        let formHTML = '';
+        let questionCounter = 0;
+        
+        currentTestQuestions.forEach((q, index) => {
+            questionCounter++;
+            let helpButtonsHTML = '';
+            
+            // Add answer button with proper model answer content
+            const answerText = q.type === 'open_ended' ? 
+                (q.model_answer ? 
+                    (typeof q.model_answer === 'string' ? 
+                        q.model_answer : 
+                        q.model_answer.summary
+                    ) : ''
+                ) : 
+                (q.answer || '');
+                
+            helpButtonsHTML += `
+                <button type="button" class="help-btn show-answer-btn" data-answer="${answerText}">
+                    <i class="bi bi-check-circle-fill answer-icon"></i>
+                </button>`;
+
+            // Add reflection button if prompt exists
+            if (q.reflection_prompt) {
+                helpButtonsHTML += `
+                    <button type="button" class="help-btn" data-reflection="${q.reflection_prompt}">
+                        <i class="bi bi-question-circle-fill question-icon"></i>
+                    </button>`;
+            }
+            
+            formHTML += `
+                <div class="question-block" id="q-block-${index}">
+                    <p class="question-text">
+                        <span>${questionCounter}. ${q.question}</span>
+                        <span class="help-buttons">${helpButtonsHTML}</span>
+                    </p>
+                    <div class="options-container">`;
+            
+            switch (q.type) {
+                case 'multiple_choice':
+                case 'true_false':
+                    const options = q.type === 'true_false' ? ['Vero', 'Falso'] : q.options;
+                    options.forEach(option => {
+                        const optionId = `q-${index}-${option.replace(/[^a-zA-Z0-9]/g, '')}`;
+                        const optionValue = q.type === 'true_false' ? (option === 'Vero' ? 'true' : 'false') : option;
+                        formHTML += `<div class="form-check"><input class="form-check-input" type="radio" name="q-${index}" id="${optionId}" value="${optionValue}"><label class="form-check-label" for="${optionId}">${option}</label></div>`;
+                    });
+                    break;
+                case 'short_answer':
+                    formHTML += `<input type="text" class="form-control" name="q-${index}" placeholder="La tua risposta...">`;
+                    break;
+                case 'open_ended':
+                    formHTML += `<textarea class="form-control" name="q-${index}" rows="4" placeholder="Spiega con parole tue..."></textarea>`;
+                    break;
+            }
+            formHTML += '</div></div>';
+        });
+        
+        quizForm.innerHTML = formHTML;
+
+        // Add event listeners for all help buttons
+        quizForm.querySelectorAll('.help-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const reflectionPrompt = btn.dataset.reflection;
+                const answer = btn.dataset.answer;
+                
+                document.getElementById('modal-title-text').textContent = 
+                    reflectionPrompt ? 'Spunto di Riflessione' : 'Risposta Corretta';
+                    
+                document.getElementById('reflection-modal-body').textContent = 
+                    reflectionPrompt || answer;
+                    
+                reflectionModal.show();
+            });
+        });
+
+        updateProgress();
+    }
+    
+    function updateProgress() {
+        const totalQuestions = currentTestQuestions.length;
+        const quizForm = quizContainer.querySelector('#quiz-form');
+        if (!quizForm) return;
+
+        const inputs = quizForm.querySelectorAll('input[type=text], input[type=radio], textarea');
+        const answeredNames = new Set();
+        
+        inputs.forEach(input => {
+            if ((input.type === 'radio' && input.checked) || 
+                (input.type !== 'radio' && input.value.trim() !== '')) {
+                answeredNames.add(input.name);
+            }
+        });
+        
+        const answeredCount = answeredNames.size;
+        quizContainer.querySelector('#progress-text').textContent = 
+            `Domande risposte: ${answeredCount} di ${totalQuestions}`;
+        const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+        quizContainer.querySelector('#progress-bar-inner').style.width = `${progressPercentage}%`;
+    }
+
+    function handleSubmit(e) {
+        e.preventDefault();
+        let score = 0;
+        let resultsHTML = '';
+        let questionCounter = 0;
+        const gradableCount = currentTestQuestions.filter(q => q.type !== 'open_ended').length;
+
+        currentTestQuestions.forEach((q, index) => {
+            questionCounter++;
+            const inputElement = document.querySelector(`[name="q-${index}"]:checked`) || 
+                               document.querySelector(`[name="q-${index}"]`);
+            const userAnswer = inputElement ? inputElement.value.trim() : "";
+
+            if (q.type !== 'open_ended') {
+                const isCorrect = userAnswer.toLowerCase() === (q.answer || '').toString().toLowerCase();
+                let resultClass = isCorrect ? 'correct' : 'incorrect';
+                if (isCorrect) score++;
+                
+                resultsHTML += `
+                    <div class="result-item ${resultClass}">
+                        <p class="result-question">${questionCounter}. ${q.question}</p>
+                        <p><strong>La tua risposta:</strong> ${userAnswer || "<em>Nessuna risposta</em>"}</p>
+                        <p class="result-explanation"><strong>Risposta corretta:</strong> ${q.answer}</p>
+                        ${q.explanation ? `<p class="result-explanation"><strong>Spiegazione:</strong> ${q.explanation}</p>` : ''}
+                    </div>`;
+            } else {
+                let modelAnswerHTML = '';
+                if (q.model_answer) {
+                    if (typeof q.model_answer === 'string') {
+                        modelAnswerHTML = `
+                            <div class="model-answer-section mt-3">
+                                <strong>Risposta corretta:</strong>
+                                <div class="model-answer-summary">${q.model_answer}</div>
+                            </div>`;
+                    } else {
+                        modelAnswerHTML = `
+                            <div class="model-answer-section mt-3">
+                                <strong>Risposta corretta:</strong>
+                                <div class="model-answer-summary">${q.model_answer.summary || ""}</div>`;
+                        
+                        if (q.model_answer.keywords && q.model_answer.keywords.length > 0) {
+                            modelAnswerHTML += `
+                                <div class="mt-2">
+                                    <strong>Concetti chiave:</strong>
+                                    <ul class="model-answer-keywords">`;
+                            q.model_answer.keywords.forEach(kw => {
+                                modelAnswerHTML += `
+                                    <li><strong>${kw.keyword}</strong>: ${kw.explanation}</li>`;
+                            });
+                            modelAnswerHTML += `</ul></div>`;
+                        }
+                        modelAnswerHTML += `</div>`;
+                    }
+                }
+
+                resultsHTML += `
+                    <div class="result-item open">
+                        <p class="result-question">${questionCounter}. ${q.question}</p>
+                        <div class="row">
+                            <div class="col-12">
+                                <strong>La tua risposta:</strong>
+                                <div class="user-answer-box">
+                                    ${userAnswer ? userAnswer.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "<em>Nessuna risposta</em>"}
+                                </div>
+                                ${modelAnswerHTML}
+                            </div>
+                        </div>
+                    </div>`;
+            }
+        });
+        
+        if (gradableCount > 0) {
+            saveResult(currentTestId, score, gradableCount);
+        }
+
+        const scoreDisplay = gradableCount > 0 ? `${score} / ${gradableCount}` : "Test di Autovalutazione";
+        const resultsPageHTML = `
+            <div class="card-body p-md-5 p-4">
+                <h2 class="text-center">${quizContainer.querySelector('.quiz-title-text').textContent} - Risultati</h2>
+                <p class="text-center display-5 fw-bold my-4">${scoreDisplay}</p>
+                <div class="mt-4">${resultsHTML}</div>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-5">
+                    <button id="save-pdf-btn" class="btn btn-lg btn-danger">
+                        <i class="bi bi-file-earmark-pdf-fill"></i> Salva Risultati in PDF
+                    </button>
+                </div>
+            </div>`;
+        
+        resultsContainer.innerHTML = resultsPageHTML;
+        resultsContainer.querySelector('#save-pdf-btn').addEventListener('click', generatePdf);
+
+        quizContainer.classList.add('d-none');
+        resultsContainer.classList.remove('d-none');
+    }
+
+
