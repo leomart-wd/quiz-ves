@@ -377,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add date and time
     const now = new Date();
-    const dateStr = now.toISOString().slice(0, 19).replace('T', ' ');
+    const dateStr = now.toLocaleDateString('it-IT') + ' ' + now.toLocaleTimeString('it-IT');
     
     // Title
     doc.setFontSize(16);
@@ -415,16 +415,43 @@ document.addEventListener('DOMContentLoaded', () => {
             yPos += 6;
         });
         
+        // Print all available options for multiple choice questions
+        const optionsContainer = quizContainer.querySelector(`#q-block-${index} .options-container`);
+        if (optionsContainer && optionsContainer.querySelectorAll('.form-check').length > 0) {
+            yPos += 2;
+            doc.setFont('helvetica', 'bold');
+            doc.text("Opzioni disponibili:", margin, yPos);
+            yPos += 6;
+            
+            doc.setFont('helvetica', 'normal');
+            optionsContainer.querySelectorAll('.form-check-label').forEach((option, optIndex) => {
+                const optionText = `${optIndex + 1}) ${option.textContent}`;
+                const optionLines = doc.splitTextToSize(optionText, usableWidth - 10);
+                optionLines.forEach(line => {
+                    if (yPos > pageHeight - margin) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+                    doc.text(line, margin + 5, yPos);
+                    yPos += 6;
+                });
+            });
+        }
+        
         // User's answer
         yPos += 2;
-        doc.setFont('helvetica', 'normal');
-        const userAnswerLabel = "La tua risposta:";
-        doc.text(userAnswerLabel, margin, yPos);
+        doc.setFont('helvetica', 'bold');
+        doc.text("La tua risposta:", margin, yPos);
         yPos += 6;
         
-        const userAnswerBox = item.querySelector('.user-answer-box');
+        doc.setFont('helvetica', 'normal');
+        const userAnswerBox = item.querySelector('.user-answer-box') || 
+                            item.querySelector('strong:contains("La tua risposta:") + *');
         if (userAnswerBox) {
-            const userAnswerLines = doc.splitTextToSize(userAnswerBox.textContent, usableWidth - 5);
+            const userAnswerLines = doc.splitTextToSize(
+                userAnswerBox.textContent.replace('La tua risposta:', '').trim(), 
+                usableWidth - 5
+            );
             userAnswerLines.forEach(line => {
                 if (yPos > pageHeight - margin) {
                     doc.addPage();
@@ -531,7 +558,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileName = `risultati_${currentTestId}_${new Date().toISOString().slice(0,10)}.pdf`;
     doc.save(fileName);
 }
-
     
 
     
