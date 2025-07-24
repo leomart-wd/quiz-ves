@@ -1,3 +1,10 @@
+
+
+
+
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
     // Riferimenti agli elementi del DOM
     const menuContainer = document.getElementById('menu-container');
@@ -34,7 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
         questions: []
     };
 
-        // Funzione per mescolare un array
+
+
+    // Funzione per mescolare un array
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -103,7 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-        function startQuiz(testId) {
+
+    function startQuiz(testId) {
         currentTestId = testId;
         const questionPool = allQuestionsData[testId] ? allQuestionsData[testId].filter(q => q.type !== 'header') : [];
         
@@ -199,7 +209,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     </button>`;
             }
 
-                        formHTML += `
+
+
+            formHTML += `
                 <div class="question-block" id="q-block-${index}">
                     <p class="question-text">
                         <span>${questionCounter}. ${q.question}</span>
@@ -273,7 +285,8 @@ document.addEventListener('DOMContentLoaded', () => {
         quizContainer.querySelector('#progress-bar-inner').style.width = `${progressPercentage}%`;
     }
 
-        function handleSubmit(e) {
+
+    function handleSubmit(e) {
         e.preventDefault();
         let score = 0;
         let resultsHTML = '';
@@ -368,7 +381,9 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer.classList.remove('d-none');
     }
 
-        function generatePdf() {
+
+
+    function generatePdf() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.width;
@@ -511,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
 
-                        // Model Answer section for open-ended questions
+            // Model Answer section for open-ended questions
             const modelAnswer = item.querySelector('.model-answer-section');
             if (modelAnswer) {
                 const summary = modelAnswer.querySelector('.model-answer-summary');
@@ -656,7 +671,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeApp();
 });
-
-
-
-                          
