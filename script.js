@@ -124,44 +124,49 @@ async function initializeApp() {
 
 
     function startQuiz(testId) {
-        currentTestId = testId;
-        const questionPool = allQuestionsData[testId] ? allQuestionsData[testId].filter(q => q.type !== 'header') : [];
-        
-        if (questionPool.length === 0 && testId) {
-            alert(`Attenzione: non ci sono domande disponibili per il test '${testId}'. Controlla il file quiz.json.`);
-            return;
-        }
-
-        const isRandomTest = ['test1', 'test2', 'test5'].includes(testId);
-
-        if (isRandomTest) {
-            const numQuestionsToSelect = parseInt(numQuestionsInput.value, 10);
-            const maxQuestions = questionPool.length;
-            if (numQuestionsToSelect > maxQuestions || numQuestionsToSelect < 1) {
-                alert(`Per favore, scegli un numero di domande tra 1 e ${maxQuestions}.`);
-                return;
-            }
-            const shuffledQuestions = shuffleArray([...questionPool]);
-            currentTestQuestions = shuffledQuestions.slice(0, numQuestionsToSelect);
-        } else {
-            currentTestQuestions = questionPool; 
-        }
-        
-        // Reset quiz state
-        currentQuizState = {
-            options: [],
-            questions: [...currentTestQuestions]
-        };
-        
-        const testTitleText = document.querySelector(`[data-testid="${testId}"]`).textContent;
-        renderQuizUI(testTitleText);
-
-        menuContainer.classList.add('d-none');
-        resultsContainer.classList.add('d-none');
-        historyContainer.classList.add('d-none');
-        quizContainer.classList.remove('d-none');
+    currentTestId = testId;
+    const questionPool = allQuestionsData[testId] ? allQuestionsData[testId].filter(q => q.type !== 'header') : [];
+    
+    if (!questionPool || questionPool.length === 0) {
+        alert(`Attenzione: non ci sono domande disponibili per il test '${testId}'. Controlla il file quiz.json.`);
+        return;
     }
 
+    const titleElement = document.querySelector(`[data-testid="${testId}"]`);
+    if (!titleElement) {
+        console.error(`Element with data-testid="${testId}" not found`);
+        return;
+    }
+
+    const isRandomTest = ['test1', 'test2', 'test5'].includes(testId);
+
+    if (isRandomTest) {
+        const numQuestionsToSelect = parseInt(numQuestionsInput.value, 10);
+        const maxQuestions = questionPool.length;
+        if (numQuestionsToSelect > maxQuestions || numQuestionsToSelect < 1) {
+            alert(`Per favore, scegli un numero di domande tra 1 e ${maxQuestions}.`);
+            return;
+        }
+        const shuffledQuestions = shuffleArray([...questionPool]);
+        currentTestQuestions = shuffledQuestions.slice(0, numQuestionsToSelect);
+    } else {
+        currentTestQuestions = questionPool; 
+    }
+    
+    // Reset quiz state
+    currentQuizState = {
+        options: [],
+        questions: [...currentTestQuestions]
+    };
+    
+    const testTitleText = titleElement.textContent;
+    renderQuizUI(testTitleText);
+
+    menuContainer.classList.add('d-none');
+    resultsContainer.classList.add('d-none');
+    historyContainer.classList.add('d-none');
+    quizContainer.classList.remove('d-none');
+}
     function renderQuizUI(title) {
         const quizHeaderHTML = `
             <div class="card-body p-md-5 p-4">
