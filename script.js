@@ -247,6 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTestId = testId;
         const questionPool = allQuestionsData[testId].filter(q => q && q.type !== 'header');
         
+        console.log(`Test ${testId}: Found ${questionPool.length} questions in pool`);
+        
         if (questionPool.length === 0) {
             alert(`Attenzione: non ci sono domande disponibili per il test '${testId}'.`);
             return;
@@ -266,6 +268,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const numQuestionsToSelect = parseInt(numQuestionsInput.value, 10);
             const maxQuestions = questionPool.length;
             
+            console.log(`Random test: selecting ${numQuestionsToSelect} from ${maxQuestions} available`);
+            
             if (isNaN(numQuestionsToSelect) || numQuestionsToSelect > maxQuestions || numQuestionsToSelect < 1) {
                 alert(`Per favore, scegli un numero di domande tra 1 e ${maxQuestions}.`);
                 return;
@@ -273,8 +277,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const shuffledQuestions = shuffleArray(questionPool);
             currentTestQuestions = shuffledQuestions.slice(0, numQuestionsToSelect);
+            
+            console.log(`Selected ${currentTestQuestions.length} questions for quiz`);
         } else {
             currentTestQuestions = [...questionPool];
+            console.log(`Using all ${currentTestQuestions.length} questions from test`);
         }
         
         // Reset quiz state
@@ -496,20 +503,24 @@ document.addEventListener('DOMContentLoaded', () => {
         let resultsHTML = '';
         let questionCounter = 0;
         
-        // Count all valid questions (excluding headers)
+        // Count all valid questions (excluding headers) - this should match what user selected
         const totalQuestionsCount = currentTestQuestions.filter(q => q && q.type !== 'header').length;
         
-        // Count only gradable questions for scoring
+        // Count only gradable questions for scoring (exclude open_ended)
         const gradableCount = currentTestQuestions.filter(q => q && q.type !== 'open_ended' && q.type !== 'header').length;
 
+        console.log(`Processing ${totalQuestionsCount} total questions, ${gradableCount} gradable questions`);
+
         currentTestQuestions.forEach((q, index) => {
-            if (!q) return;
+            if (!q || q.type === 'header') return;
             
             questionCounter++;
             const inputElement = document.querySelector(`[name="q-${index}"]:checked`) || 
                                document.querySelector(`[name="q-${index}"]`);
             const userAnswer = inputElement ? safeString(inputElement.value) : "";
             const questionBlock = document.getElementById(`q-block-${index}`);
+
+            console.log(`Processing question ${questionCounter}: type=${q.type}, answered=${userAnswer !== ""}`);
 
             if (q.type !== 'open_ended') {
                 // Check if question was answered
@@ -616,6 +627,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
+        // Verification: ensure we processed all expected questions
+        if (questionCounter !== totalQuestionsCount) {
+            console.error(`Question count mismatch! Processed: ${questionCounter}, Expected: ${totalQuestionsCount}`);
+            alert(`Errore: elaborazione incompleta. Domande elaborate: ${questionCounter}, Attese: ${totalQuestionsCount}`);
+        }
+        
         // Save results
         if (gradableCount > 0) {
             saveResult(currentTestId, score, gradableCount);
@@ -629,6 +646,8 @@ document.addEventListener('DOMContentLoaded', () => {
             scoreDisplay = `Test di Autovalutazione (${totalQuestionsCount} domande)`;
         }
         const quizTitle = quizContainer?.querySelector('.quiz-title-text')?.textContent || 'Quiz';
+        
+        console.log(`Results: ${score}/${gradableCount} gradable, ${totalQuestionsCount} total questions, ${questionCounter} processed`);
         
         const resultsPageHTML = `
             <div class="card-body p-md-5 p-4">
