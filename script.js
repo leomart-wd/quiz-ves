@@ -297,13 +297,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const totalValidQuestions = currentTestQuestions.filter(q => q && q.type !== 'header').length;
+        
         const quizHeaderHTML = `
             <div class="card-body p-md-5 p-4">
                 <div class="mb-4">
                     <h2 class="quiz-title-text">${escapeHtml(title)}</h2>
                 </div>
                 <div id="progress-container" class="mb-4">
-                    <p id="progress-text" class="mb-1 text-center">Domande risposte: 0 di ${currentTestQuestions.length}</p>
+                    <p id="progress-text" class="mb-1 text-center">Domande risposte: 0 di ${totalValidQuestions}</p>
                     <div class="progress" style="height: 10px;">
                         <div id="progress-bar-inner" class="progress-bar" role="progressbar" style="width: 0%"></div>
                     </div>
@@ -462,7 +464,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Update progress
     function updateProgress() {
-        const totalQuestions = currentTestQuestions.length;
+        // Count only valid questions (excluding headers)
+        const totalQuestions = currentTestQuestions.filter(q => q && q.type !== 'header').length;
         const quizForm = quizContainer?.querySelector('#quiz-form');
         const progressText = quizContainer?.querySelector('#progress-text');
         const progressBar = quizContainer?.querySelector('#progress-bar-inner');
@@ -492,7 +495,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let score = 0;
         let resultsHTML = '';
         let questionCounter = 0;
-        const gradableCount = currentTestQuestions.filter(q => q && q.type !== 'open_ended').length;
+        
+        // Count all valid questions (excluding headers)
+        const totalQuestionsCount = currentTestQuestions.filter(q => q && q.type !== 'header').length;
+        
+        // Count only gradable questions for scoring
+        const gradableCount = currentTestQuestions.filter(q => q && q.type !== 'open_ended' && q.type !== 'header').length;
 
         currentTestQuestions.forEach((q, index) => {
             if (!q) return;
@@ -501,6 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const inputElement = document.querySelector(`[name="q-${index}"]:checked`) || 
                                document.querySelector(`[name="q-${index}"]`);
             const userAnswer = inputElement ? safeString(inputElement.value) : "";
+            const questionBlock = document.getElementById(`q-block-${index}`);
 
             if (q.type !== 'open_ended') {
                 // Check if question was answered
@@ -511,9 +520,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const correctAnswer = safeString(q.answer);
                 const isCorrect = isAnswered && userAnswer.toLowerCase() === correctAnswer.toLowerCase();
-                const resultClass = !isAnswered ? '' : (isCorrect ? 'correct' : 'incorrect');
+                let resultClass = '';
                 
-                if (isCorrect) score++;
+                if (!isAnswered) {
+                    resultClass = '';
+                    // Add grey border for unanswered questions
+                    if (questionBlock) {
+                        questionBlock.style.border = '3px solid #6c757d';
+                        questionBlock.style.backgroundColor = '#f8f9fa';
+                    }
+                } else if (isCorrect) {
+                    resultClass = 'correct';
+                    score++;
+                    // Add green border for correct answers
+                    if (questionBlock) {
+                        questionBlock.style.border = '3px solid #198754';
+                        questionBlock.style.backgroundColor = '#d1e7dd';
+                    }
+                } else {
+                    resultClass = 'incorrect';
+                    // Add red border for incorrect answers
+                    if (questionBlock) {
+                        questionBlock.style.border = '3px solid #dc3545';
+                        questionBlock.style.backgroundColor = '#f8d7da';
+                    }
+                }
                 
                 // Format display answers
                 let displayAnswer = correctAnswer;
@@ -532,7 +563,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${q.explanation ? `<p class="result-explanation"><strong>Spiegazione:</strong> ${escapeHtml(q.explanation)}</p>` : ''}
                     </div>`;
             } else {
-                // Handle open-ended questions
+                // Handle open-ended questions - add light grey border
+                if (questionBlock) {
+                    questionBlock.style.border = '3px solid #6c757d';
+                    questionBlock.style.backgroundColor = '#f8f9fa';
+                }
+                
                 let modelAnswerHTML = '';
                 if (q.model_answer) {
                     if (typeof q.model_answer === 'string') {
@@ -585,8 +621,13 @@ document.addEventListener('DOMContentLoaded', () => {
             saveResult(currentTestId, score, gradableCount);
         }
 
-        // Display results
-        const scoreDisplay = gradableCount > 0 ? `${score} / ${gradableCount}` : "Test di Autovalutazione";
+        // Display results - show score for gradable questions but total questions selected
+        let scoreDisplay;
+        if (gradableCount > 0) {
+            scoreDisplay = `${score} / ${gradableCount} (su ${totalQuestionsCount} domande totali)`;
+        } else {
+            scoreDisplay = `Test di Autovalutazione (${totalQuestionsCount} domande)`;
+        }
         const quizTitle = quizContainer?.querySelector('.quiz-title-text')?.textContent || 'Quiz';
         
         const resultsPageHTML = `
@@ -612,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showContainer('results');
     }
 
-    // Generate PDF
+    // Generate PDF with complete explanations
     function generatePdf() {
         if (typeof window.jspdf === 'undefined') {
             alert('Libreria PDF non disponibile. Impossibile generare il PDF.');
@@ -660,27 +701,28 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.text(`Punteggio: ${score}`, pageWidth / 2, yPos, { align: 'center' });
             yPos += 15;
             
-            // Results
+            // Results with complete explanations
             doc.setFontSize(11);
-            resultItems.forEach((item, index) => {
+            currentTestQuestions.forEach((q, index) => {
+                if (!q || !q.question) return;
+                
                 if (yPos > pageHeight - margin) {
                     doc.addPage();
                     yPos = margin;
                 }
                 
-                const questionEl = item.querySelector('.result-question');
-                if (questionEl) {
-                    doc.setFont('helvetica', 'bold');
-                    const questionLines = doc.splitTextToSize(questionEl.textContent, usableWidth);
-                    questionLines.forEach(line => {
-                        if (yPos > pageHeight - margin) {
-                            doc.addPage();
-                            yPos = margin;
-                        }
-                        doc.text(line, margin, yPos);
-                        yPos += 6;
-                    });
-                }
+                // Question
+                doc.setFont('helvetica', 'bold');
+                const questionText = `${index + 1}. ${q.question}`;
+                const questionLines = doc.splitTextToSize(questionText, usableWidth);
+                questionLines.forEach(line => {
+                    if (yPos > pageHeight - margin) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+                    doc.text(line, margin, yPos);
+                    yPos += 6;
+                });
                 
                 // Add options if available
                 const options = currentQuizState.options[index];
@@ -712,35 +754,79 @@ document.addEventListener('DOMContentLoaded', () => {
                 yPos += 6;
                 
                 doc.setFont('helvetica', 'normal');
-                const userAnswerBox = item.querySelector('.user-answer-box');
-                if (userAnswerBox) {
-                    const userAnswerText = safeString(userAnswerBox.textContent);
-                    const userAnswerLines = doc.splitTextToSize(userAnswerText, usableWidth - 5);
-                    userAnswerLines.forEach(line => {
-                        if (yPos > pageHeight - margin) {
-                            doc.addPage();
-                            yPos = margin;
-                        }
-                        doc.text(line, margin + 5, yPos);
-                        yPos += 6;
-                    });
+                const inputElement = document.querySelector(`[name="q-${index}"]:checked`) || 
+                                   document.querySelector(`[name="q-${index}"]`);
+                const userAnswer = inputElement ? safeString(inputElement.value) : "Nessuna risposta";
+                
+                let displayUserAnswer = userAnswer;
+                if (q.type === 'true_false' && userAnswer !== "Nessuna risposta") {
+                    displayUserAnswer = userAnswer.toLowerCase() === 'true' ? 'Vero' : 'Falso';
                 }
                 
-                // Correct answer and explanation
-                const explanationEl = item.querySelector('.result-explanation');
-                if (explanationEl) {
+                const userAnswerLines = doc.splitTextToSize(displayUserAnswer, usableWidth - 5);
+                userAnswerLines.forEach(line => {
+                    if (yPos > pageHeight - margin) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+                    doc.text(line, margin + 5, yPos);
+                    yPos += 6;
+                });
+                
+                // Correct answer
+                yPos += 2;
+                doc.setFont('helvetica', 'bold');
+                doc.text("Risposta corretta:", margin, yPos);
+                yPos += 6;
+                
+                doc.setFont('helvetica', 'normal');
+                let correctAnswer = '';
+                
+                if (q.type === 'open_ended') {
+                    if (q.model_answer) {
+                        if (typeof q.model_answer === 'string') {
+                            correctAnswer = q.model_answer;
+                        } else if (q.model_answer.summary) {
+                            correctAnswer = q.model_answer.summary;
+                            
+                            // Add keywords for open-ended questions
+                            if (q.model_answer.keywords && Array.isArray(q.model_answer.keywords)) {
+                                correctAnswer += '\n\nConcetti chiave:\n';
+                                q.model_answer.keywords.forEach(kw => {
+                                    if (kw && kw.keyword) {
+                                        correctAnswer += `• ${kw.keyword}: ${kw.explanation || ''}\n`;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                } else {
+                    correctAnswer = q.answer || '';
+                    if (q.type === 'true_false') {
+                        correctAnswer = correctAnswer.toLowerCase() === 'true' ? 'Vero' : 'Falso';
+                    }
+                }
+                
+                const answerLines = doc.splitTextToSize(correctAnswer, usableWidth - 5);
+                answerLines.forEach(line => {
+                    if (yPos > pageHeight - margin) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+                    doc.text(line, margin + 5, yPos);
+                    yPos += 6;
+                });
+
+                // Add explanation if exists
+                if (q.explanation) {
                     yPos += 2;
                     doc.setFont('helvetica', 'bold');
-                    doc.text("Risposta corretta:", margin, yPos);
+                    doc.text("Spiegazione:", margin, yPos);
                     yPos += 6;
                     
                     doc.setFont('helvetica', 'normal');
-                    const explanationText = safeString(explanationEl.textContent);
-                    const parts = explanationText.split('Spiegazione:');
-                    const answerText = parts[0].replace('Risposta corretta:', '').trim();
-                    
-                    const answerLines = doc.splitTextToSize(answerText, usableWidth - 5);
-                    answerLines.forEach(line => {
+                    const explanationLines = doc.splitTextToSize(q.explanation, usableWidth - 5);
+                    explanationLines.forEach(line => {
                         if (yPos > pageHeight - margin) {
                             doc.addPage();
                             yPos = margin;
@@ -748,73 +834,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         doc.text(line, margin + 5, yPos);
                         yPos += 6;
                     });
-
-                    // Add explanation if exists
-                    if (parts.length > 1) {
-                        yPos += 2;
-                        doc.setFont('helvetica', 'bold');
-                        doc.text("Spiegazione:", margin, yPos);
-                        yPos += 6;
-                        
-                        doc.setFont('helvetica', 'normal');
-                        const explanationLines = doc.splitTextToSize(parts[1].trim(), usableWidth - 5);
-                        explanationLines.forEach(line => {
-                            if (yPos > pageHeight - margin) {
-                                doc.addPage();
-                                yPos = margin;
-                            }
-                            doc.text(line, margin + 5, yPos);
-                            yPos += 6;
-                        });
-                    }
-                }
-
-                // Model answer for open-ended questions
-                const modelAnswer = item.querySelector('.model-answer-section');
-                if (modelAnswer) {
-                    const summary = modelAnswer.querySelector('.model-answer-summary');
-                    if (summary) {
-                        const summaryLines = doc.splitTextToSize(safeString(summary.textContent), usableWidth - 5);
-                        summaryLines.forEach(line => {
-                            if (yPos > pageHeight - margin) {
-                                doc.addPage();
-                                yPos = margin;
-                            }
-                            doc.text(line, margin + 5, yPos);
-                            yPos += 6;
-                        });
-                    }
-                    
-                    // Keywords
-                    const keywords = modelAnswer.querySelectorAll('.model-answer-keywords li');
-                    if (keywords.length > 0) {
-                        yPos += 2;
-                        doc.setFont('helvetica', 'bold');
-                        doc.text("Concetti chiave:", margin, yPos);
-                        yPos += 6;
-                        
-                        doc.setFont('helvetica', 'normal');
-                        keywords.forEach(keyword => {
-                            const keywordText = safeString(keyword.textContent);
-                            const keywordLines = doc.splitTextToSize(keywordText, usableWidth - 10);
-                            keywordLines.forEach(line => {
-                                if (yPos > pageHeight - margin) {
-                                    doc.addPage();
-                                    yPos = margin;
-                                }
-                                doc.text("• " + line, margin + 5, yPos);
-                                yPos += 6;
-                            });
-                        });
-                    }
                 }
                 
                 yPos += 10;
                 
                 // Separator line
-                if (index < resultItems.length - 1) {
-                    doc.setDrawColor(200);
-                    doc.line(margin, yPos - 5, pageWidth - margin, yPos - 5);
+                if (index < currentTestQuestions.length - 1) {
+                    if (yPos > pageHeight - margin - 10) {
+                        doc.addPage();
+                        yPos = margin;
+                    } else {
+                        doc.setDrawColor(200);
+                        doc.line(margin, yPos - 5, pageWidth - margin, yPos - 5);
+                        yPos += 5;
+                    }
                 }
             });
             
@@ -861,6 +894,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Reset to menu
     function resetToMenu() {
+        // Reset question blocks styling
+        const questionBlocks = document.querySelectorAll('.question-block');
+        questionBlocks.forEach(block => {
+            block.style.border = '';
+            block.style.backgroundColor = '';
+        });
+        
         showContainer('menu');
     }
 
